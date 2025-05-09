@@ -2,7 +2,9 @@ import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/co
 import { UserService } from "src/api/user/user.service";
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from "bcrypt";
-import type { CreateUserDTO } from "src/api/user/dto/create-user.dto";
+import { CreateUserDTO } from "src/api/user/dto/create-user.dto";
+import { console } from "node:inspector/promises";
+
 @Injectable()
 export class AuthService {
     constructor( private userService: UserService, private jwtService: JwtService ) { }
@@ -22,7 +24,9 @@ export class AuthService {
     }
 
     async login( user: any ) {
+
         const payload = { email: user.email, sub: user.id }
+
         return {
             user,
             access_token: this.jwtService.sign( payload ),
@@ -51,19 +55,23 @@ export class AuthService {
     async validateGoogleUser( profile: any ) {
         const { email, name } = profile;
         let user = await this.userService.findByEmail( email );
+
         if ( !user ) {
             const randomPassword = Math.random().toString( 36 ).slice( -8 );
             const salt = await bcrypt.genSalt();
             const hashedPassword = await bcrypt.hash( randomPassword, salt );
-            user = await this.userService.createUser( {
+            const accountInforUser = {
                 email, name, password: hashedPassword, provider: 'google', providerId: profile.id
-            } )
+            }
+            user = await this.userService.createUser( accountInforUser )
         }
 
         const { password: _, ...result } = user;
-
+        return result;
     }
+
     async googleLogin( req ) {
+
         if ( !req.user ) {
             throw new UnauthorizedException( 'Không thể xác thực với Google' );
         }

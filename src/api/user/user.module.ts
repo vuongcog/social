@@ -9,6 +9,7 @@ import { UserMiddleware } from "./user.middleware";
     imports: [],
     controllers: [ UserController ],
     providers: [ UserService ],
+    exports: [ UserService ]
 } )
 export class UserModule implements NestModule {
     configure( consumer: MiddlewareConsumer ) {

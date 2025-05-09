@@ -135,7 +135,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/huynhnhatvuong/project/javascript/backend/meme-social/generated/prisma",
+      "value": "/home/huynhnhatvuong/project/javascript/backend/social/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -149,7 +149,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/huynhnhatvuong/project/javascript/backend/meme-social/prisma/schema.prisma",
+    "sourceFilePath": "/home/huynhnhatvuong/project/javascript/backend/social/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -171,8 +171,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id         String   @id @default(uuid())\n  name       String\n  email      String   @unique\n  password   String\n  provider   String   @default(\"local\")\n  providerId String?\n  isActive   Boolean  @default(true)\n  created_at DateTime @default(now())\n  updated_at DateTime @default(now())\n}\n",
-  "inlineSchemaHash": "5799710316c12508d3f091676544d79a377c9c4adfd0afdd1a075d6b65717b9c",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id       String @id @default(uuid())\n  name     String\n  email    String @unique\n  password String\n\n  provider   String  @default(\"local\")\n  providerId String?\n\n  isActive   Boolean  @default(true)\n  created_at DateTime @default(now())\n  updated_at DateTime @default(now())\n}\n",
+  "inlineSchemaHash": "cf6e1d131e46fc745e2c0c3fe5ba7fdbf8bb99866ee2011cadaed7125cfab038",
   "copyEngine": true
 }
 
