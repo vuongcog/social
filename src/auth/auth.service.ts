@@ -42,7 +42,7 @@ export class AuthService {
         const salt = await bcrypt.genSalt();
         const hashedPassword = await bcrypt.hash( createUserDto.password, salt );
 
-        const newUser = await this.userService.createUser( {
+        const newUser = await this.userService.create( {
             ...createUserDto,
             password: hashedPassword,
             provider: 'local',
@@ -63,7 +63,7 @@ export class AuthService {
             const accountInforUser = {
                 email, name, password: hashedPassword, provider: 'google', providerId: profile.id
             }
-            user = await this.userService.createUser( accountInforUser )
+            user = await this.userService.create( accountInforUser )
         }
 
         const { password: _, ...result } = user;

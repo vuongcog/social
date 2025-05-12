@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { userMapping } from './mappings/user.maping';
-import type { ConfigService } from '@nestjs/config';
-import type { Record } from '@prisma/client/runtime/library';
+import { ConfigService } from '@nestjs/config';
+import { Record } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class MyElasticSearchService {
@@ -85,7 +85,7 @@ export class MyElasticSearchService {
     }
   }
 
-  async search( index: string, query: any, options: any ) {
+  async search( index: string, query: any, options: any = {} ) {
 
     try {
       const { size = 10, from = 0, sort, _source, highlight } = options;

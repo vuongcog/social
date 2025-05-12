@@ -2,15 +2,18 @@ import { Kafka } from "kafkajs";
 
 export class KafkaProducer {
     private producer;
+
     constructor() {
         const kafka = new Kafka( {
             clientId: 'user-service',
-            brokers: [ 'kafka-broker:9092' ]
+            brokers: [ 'localhost:9093' ],
         } );
 
         this.producer = kafka.producer()
         this.connect();
     }
+
+
     async connect() {
         try {
             await this.producer.connect();

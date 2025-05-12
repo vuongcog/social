@@ -1,31 +1,52 @@
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
-import type { ConfigService } from "@nestjs/config";
-import { Consumer, Kafka, Producer, type KafkaMessage } from "kafkajs";
+import { ConfigService } from "@nestjs/config";
+import { Consumer, Kafka, Producer, type Admin, type KafkaMessage } from "kafkajs";
 
 @Injectable()
+
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
     private readonly kafka: Kafka
+    private admin: Admin;
     private readonly producer: Producer
     private consumer: Consumer
     private readonly logger = new Logger( KafkaService.name )
 
     constructor( private configService: ConfigService ) {
-        const brokers = this.configService.get<string>( 'KAFKA_BROKERS' )?.split( ',' ) || [ 'localhost:9092' ];
-        this.kafka = new Kafka( {
+        const brokers = this.configService.get<string>( 'KAFKA_BROKERS' )?.split( ',' ) || [ 'localhost:9093' ];
+        const clientKafkaConifg = {
             clientId: 'user-service', brokers: brokers, retry: {
                 initialRetryTime: 100,
                 retries: 8
             }
-        } )
-        this.producer = this.kafka.producer()
+        }
+        this.kafka = new Kafka( clientKafkaConifg )
 
+        this.admin = this.kafka.admin();
+
+        this.producer = this.kafka.producer()
     }
+
     async onModuleInit() {
         try {
             await this.producer.connect()
+
             this.logger.log( "Successfully connected to Kafka producer" );
 
+            await this.admin.connect();
             this.consumer = this.kafka.consumer( { groupId: 'user-service-comsumer' } );
+
+            await this.admin.createTopics( {
+                topics: [
+                    {
+                        topic: 'user-events',
+                        numPartitions: 6,
+                        replicationFactor: 1,
+                    },
+                ],
+                waitForLeaders: true,
+            } );
+            this.logger.log( 'Ensured topic "user-events" exists with 6 partitions' );
+
 
         } catch ( error ) {
             this.logger.error( `Failed to connect to Kaffa :${ error.message }`, error.stack )
@@ -44,6 +65,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     }
 
     async sendMessage( topic: string, key: string, value: any ) {
+        const a = 1;
         try {
             await this.producer.send( {
                 topic,

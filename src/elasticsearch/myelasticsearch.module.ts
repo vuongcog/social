@@ -1,12 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { MyElasticSearchService } from './myelasticsearch.service';
 import { ElasticsearchController } from './myelasticsearch.controller';
 import { ConfigModule } from 'src/config/config.module';
 import { ConfigService } from '@nestjs/config';
+import { KafkaModule } from 'src/kafka/kafka.module';
 
+@Global()
 @Module( {
   imports: [
+    KafkaModule,
     ElasticsearchModule.registerAsync( {
       imports: [ ConfigModule ],
       useFactory: async ( configService: ConfigService ) => ( {
