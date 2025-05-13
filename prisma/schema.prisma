@@ -23,4 +23,12 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
+  Role Role[] @relation("UserRoles")
+}
+
+model Role {
+  id String @id @default(uuid())
+  name String @unique
+  users User[] @relation("UserRoles")
+  
 }

@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3'
 
 services:
   kibana:
@@ -61,8 +61,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
       KAFKA_MIN_INSYNC_REPLICAS: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
-
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     ports:
       - "19092:19092"
     healthcheck:
@@ -95,8 +94,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
       KAFKA_MIN_INSYNC_REPLICAS: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
-
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     ports:
       - "29092:29092"
     healthcheck:
@@ -129,8 +127,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
       KAFKA_MIN_INSYNC_REPLICAS: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
-
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     ports:
       - "39092:39092"
     healthcheck:
@@ -163,33 +160,22 @@ services:
         cub kafka-ready -b kafka2:9092 1 120
         cub kafka-ready -b kafka3:9092 1 120
         echo 'Kafka brokers are up. Creating topics...'
-        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-configs --replication-factor 2 --partitions 1 --if-not-exists --config cleanup.policy=compact
-        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-offsets --replication-factor 2 --partitions 1 --if-not-exists --config cleanup.policy=compact
-        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-status --replication-factor 2 --partitions 1 --if-not-exists --config cleanup.policy=compact
+        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-configs --replication-factor 2 --partitions 1 --if-not-exists
+        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-offsets --replication-factor 2 --partitions 1 --if-not-exists
+        kafka-topics --create --bootstrap-server kafka1:9092 --topic connect-status --replication-factor 2 --partitions 1 --if-not-exists
         kafka-topics --create --bootstrap-server kafka1:9092 --topic _confluent-controlcenter-7-0-0-command --replication-factor 2 --partitions 1 --if-not-exists
         kafka-topics --create --bootstrap-server kafka1:9092 --topic _confluent-controlcenter-7-0-0-metrics --replication-factor 2 --partitions 1 --if-not-exists
         echo 'Kafka topics created successfully!'
     restart: on-failure
-    healthcheck:
-      test: ["CMD-SHELL", "exit 0"] 
-      interval: 5s
-      timeout: 1s
-      retries: 1
-      start_period: 30s
-
 
   kafka-connect:
     image: confluentinc/cp-kafka-connect:7.0.0
     container_name: kafka-connect
     depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2: 
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-      kafka-init:
-        condition: service_healthy
+      - kafka1
+      - kafka2
+      - kafka3
+      - kafka-init
     environment:
       CONNECT_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9092,kafka3:9092
       CONNECT_REST_PORT: 8083

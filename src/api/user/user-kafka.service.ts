@@ -10,6 +10,8 @@ export class UserKafkaService implements OnModuleInit {
 
     private readonly logger = new Logger( UserKafkaService.name );
     private readonly USER_TOPIC = 'user-events'
+    private readonly ROLE_TOPIC = 'role-events'
+    private readonly USER_ROLE = 'user-role-events'
 
 
     constructor( private readonly prismaService: PrismaService,
@@ -53,7 +55,6 @@ export class UserKafkaService implements OnModuleInit {
     }
 
     async emitUserCreated( user: any ) {
-        const a = 1;
         return this.kafkaService.sendMessage( this.USER_TOPIC, user.id, {
             type: 'USER_CREATED',
             payload: user,

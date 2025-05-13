@@ -9,3 +9,5 @@
 
 
  docker-compose --env-file .env up -d
+
+ docker network create kafka-network
