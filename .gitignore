@@ -1,5 +1,8 @@
 echo ".env.development" >> .gitignore
-
+.env
+.env.development
+.env.production
+.env.stagging
 # compiled output
 /dist
 /node_modules
