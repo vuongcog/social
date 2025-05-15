@@ -11,3 +11,4 @@
  docker-compose --env-file .env up -d
 
  docker network create kafka-network
+git filter-repo --path .env.development --invert-paths
