@@ -8,11 +8,18 @@
   "scripts": {
     "start:role": "nest start role --watch",
 
+    "start": "NODE_ENV=development npm run start:api-gateway",
+    "start:all": "NODE_ENV=development concurrently \"npm run start:api-gateway\" \"npm run start:auth\" \"npm run start:user\"",
+    "start:api-gateway": "NODE_ENV=development nest start api-gateway --watch",
+    "start:auth": "NODE_ENV=development nest start auth --watch",
+    "start:user": "NODE_ENV=development nest start user --watch",
+
+    "prisma:migrate": "prisma migrate dev --schema=./libs/database/src/prisma/schema.prisma",
+
     "reset:dev": "dotenv -e .env.development -- prisma migrate reset",
     "migrate:dev": "dotenv -e .env.development -- prisma migrate dev",
     "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
-    "start": "NODE_ENV=development nest start",
     "start:dev": "NODE_ENV=development nest start --watch",
     "start:debug": "NODE_ENV=development nest start --debug --watch",
     "start:prod": "node dist/apps/meme-social/main",
