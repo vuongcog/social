@@ -1,16 +1,20 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from './user.service';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class UserController {
-    constructor( private readonly userService: UserService ) { }
+    constructor( private readonly userService: UserService, private readonly configService: ConfigService ) {
+    }
 
     @MessagePattern( 'user.findAll' )
     async findAll() {
         try {
-            const users = await this.userService.findAll();
-            return { success: true, data: users };
+            // const users = await this.userService.findAll();
+            // return { success: true, data: users };
+            return { success: true, }
+
         } catch ( error ) {
             return { success: false, message: error.message };
         }
@@ -48,13 +52,5 @@ export class UserController {
             return { success: false, message: error.message };
         }
     }
-    @MessagePattern( 'user.test' )
-    async test( @Payload() data: { id: string } ) {
-        try {
-            await this.userService.remove( data.id );
-            return { success: true };
-        } catch ( error ) {
-            return { success: false, message: error.message };
-        }
-    }
+
 }

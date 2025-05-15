@@ -12,7 +12,7 @@ async function bootstrap() {
     options: {
       client: {
         clientId: 'auth',
-        brokers: configService.kafkaBrokers,
+        brokers: configService.kafkaBrokerUrls,
       },
       consumer: {
         groupId: 'auth-consumer-deptrai',

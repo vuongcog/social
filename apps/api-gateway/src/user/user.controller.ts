@@ -1,17 +1,21 @@
 import { Body, Controller, Delete, Get, Inject, Param, Put, UseGuards, type OnModuleInit } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
+import { ClientKafka, MessagePattern } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { AuthGuard } from '../auth/auth.guard';
 import { InjectKafkaClient } from '../kafka/kafka.decorator';
+import { ConfigService } from '@nestjs/config';
+import { CONSTANTS } from '@app/common';
 
 @Controller( 'users' )
-@UseGuards( AuthGuard )
+// @UseGuards( AuthGuard )
 export class UserController implements OnModuleInit {
 
     constructor(
-        @Inject( 'USER_SERVICE' ) private readonly userClient: ClientKafka,
+        @Inject( process.env.USER_SERVICE || CONSTANTS.SERVICES[ 'user-service' ] ) private readonly userClient: ClientKafka,
+        private readonly configService: ConfigService
 
-    ) { }
+    ) {
+    }
 
 
     async onModuleInit() {
@@ -21,6 +25,8 @@ export class UserController implements OnModuleInit {
         await this.userClient.connect();
 
     }
+
+
 
     @Get()
     async findAll() {

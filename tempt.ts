@@ -7,7 +7,7 @@ import { CONSTANTS } from '@app/common';
     imports: [
         ClientsModule.registerAsync( [
             {
-                name: process.env.AUTH_SERVICE || CONSTANTS.SERVICES[ 'auth-service' ],
+                name: process.env.AUTH_SERVIE || CONSTANTS.SERVICES[ 'auth-service' ],
                 imports: [ ConfigModule ],
                 inject: [ ConfigService ],
                 useFactory: ( configService: ConfigService ) => {

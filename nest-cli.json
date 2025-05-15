@@ -7,34 +7,38 @@
     "webpack": true,
     "tsConfigPath": "apps/meme-social/tsconfig.app.json"
   },
+  "monorepo": true,
+  "root": "apps/api-gateway",
   "projects": {
-    "api-getway": {
+  
+     "api-gateway": {
       "type": "application",
-      "root": "apps/api-getway",
+      "root": "apps/api-gateway",
       "entryFile": "main",
-      "sourceRoot": "apps/api-getway/src",
+      "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/api-getway/tsconfig.app.json"
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
-     "role": {
+    "auth": {
       "type": "application",
-      "root": "apps/role",
+      "root": "apps/auth",
       "entryFile": "main",
-      "sourceRoot": "apps/role/src",
+      "sourceRoot": "apps/auth/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/role/tsconfig.app.json"
+        "tsConfigPath": "apps/auth/tsconfig.app.json"
       }
     },
-    "auth-service": {
+    "user": {
       "type": "application",
-      "root": "apps/auth-service",
+      "root": "apps/user",
       "entryFile": "main",
-      "sourceRoot": "apps/auth-service/src",
+      "sourceRoot": "apps/user/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/auth-service/tsconfig.app.json"
+        "tsConfigPath": "apps/user/tsconfig.app.json"
       }
     },
+   
     "common": {
       "type": "library",
       "root": "libs/common",
@@ -53,15 +57,7 @@
         "tsConfigPath": "libs/config/tsconfig.lib.json"
       }
     },
-    "data-service": {
-      "type": "application",
-      "root": "apps/data-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/data-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/data-service/tsconfig.app.json"
-      }
-    },
+   
     "database": {
       "type": "library",
       "root": "libs/database",
@@ -71,43 +67,18 @@
         "tsConfigPath": "libs/database/tsconfig.lib.json"
       }
     },
-    "elastic-search-service": {
-      "type": "application",
-      "root": "apps/elastic-search-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/elastic-search-service/src",
+
+    "kafka": {
+      "type": "library",
+      "root": "libs/kafka",
+      "entryFile": "index",
+      "sourceRoot": "libs/kafka/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/elastic-search-service/tsconfig.app.json"
-      }
-    },
-    "meme-social": {
-      "type": "application",
-      "root": "apps/meme-social",
-      "entryFile": "main",
-      "sourceRoot": "apps/meme-social/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/meme-social/tsconfig.app.json"
-      }
-    },
-    "test": {
-      "type": "application",
-      "root": "apps/test",
-      "entryFile": "main",
-      "sourceRoot": "apps/test/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/test/tsconfig.app.json"
-      }
-    },
-    "user-service": {
-      "type": "application",
-      "root": "apps/user-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/user-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/user-service/tsconfig.app.json"
+        "tsConfigPath": "libs/kafka/tsconfig.lib.json"
       }
     }
-  },
-  "monorepo": true,
-  "root": "apps/meme-social"
+   
+   
+   
+  }
 }

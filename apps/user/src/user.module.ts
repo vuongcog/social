@@ -3,6 +3,7 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { DatabaseModule } from '@app/database';
 import { KafkaModule } from '@app/kafka';
+import { ConfigModule } from '@app/config';
 
 @Module( {
     imports: [ DatabaseModule, KafkaModule ],

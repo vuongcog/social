@@ -7,17 +7,25 @@
   "license": "UNLICENSED",
   "scripts": {
     "start:role": "nest start role --watch",
+    "start": "npm run start:api-gateway",
+    "start:all": "concurrently \"npm run start:api-gateway\" \"npm run start:auth\" \"npm run start:user\"",
+    "start:api-gateway": "nest start api-gateway --watch",
+    "start:auth": "nest start auth --watch",
+    "start:user": "nest start user --watch",
+    
+    "start:user-debug": "nest start user --debug=9229 --watch",
+    "start:api-gateway-debug": "nest start api-gateway --debug=9230 --watch",
 
-    "start": "NODE_ENV=development npm run start:api-gateway",
-    "start:all": "NODE_ENV=development concurrently \"npm run start:api-gateway\" \"npm run start:auth\" \"npm run start:user\"",
-    "start:api-gateway": "NODE_ENV=development nest start api-gateway --watch",
-    "start:auth": "NODE_ENV=development nest start auth --watch",
-    "start:user": "NODE_ENV=development nest start user --watch",
 
     "prisma:migrate": "prisma migrate dev --schema=./libs/database/src/prisma/schema.prisma",
+    "prisma:reset": "prisma migrate reset --schema=./libs/database/src/prisma/schema.prisma",
+    "prisma:status": "prisma migrate status --schema=./libs/database/src/prisma/schema.prisma",
+    "prisma:resolve": "prisma migrate resolve --schema=./libs/database/src/prisma/schema.prisma",
+    "prisma:execute": "prisma db execute --schema=./libs/database/src/prisma/schema.prisma",
 
     "reset:dev": "dotenv -e .env.development -- prisma migrate reset",
     "migrate:dev": "dotenv -e .env.development -- prisma migrate dev",
+
     "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start:dev": "NODE_ENV=development nest start --watch",
@@ -46,6 +54,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^16.5.0",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "opossum": "^8.4.0",
