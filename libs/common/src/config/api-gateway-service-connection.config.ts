@@ -1,22 +1,18 @@
 import { registerAs } from '@nestjs/config';
 import { Transport } from '@nestjs/microservices';
-import { configs } from '.';
 import { CONSTANTS } from '../constants';
+import { appUtils } from '../utils';
 
 export default registerAs( 'api-gateway-service-connection', () => ( {
     "gateway-auth-service": {
         transport: Transport.KAFKA,
         options: {
             client: {
-                clientId: CONSTANTS.CLIENT_ID[ 'api-gateway-auth' ],
-                brokers: process.env.KAFKA_BROKERS || [
-                    'localhost:19092',
-                    'localhost:29092',
-                    'localhost:39092'
-                ]
+                clientId: CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID,
+                brokers: appUtils.convertBrokers()
             },
             consumer: {
-                groupId: CONSTANTS.GROUP_ID[ 'gateway-auth-group-id' ],
+                groupId: CONSTANTS.GROUP_ID.GATEWAY_AUTH_GROUP_ID,
             },
         },
     },
@@ -24,15 +20,11 @@ export default registerAs( 'api-gateway-service-connection', () => ( {
         transport: Transport.KAFKA,
         options: {
             client: {
-                clientId: CONSTANTS.CLIENT_ID[ 'api-gateway-user' ],
-                brokers: process.env.KAFKA_BROKERS || [
-                    'localhost:19092',
-                    'localhost:29092',
-                    'localhost:39092'
-                ]
+                clientId: CONSTANTS.CLIENT_ID.API_GATEWAY_USER_CLIENT_ID,
+                brokers: appUtils.convertBrokers()
             },
             consumer: {
-                groupId: CONSTANTS.GROUP_ID[ 'gateway-user-group-id' ],
+                groupId: CONSTANTS.GROUP_ID.GATEWAY_USER_GROUP_ID,
             },
         },
     }

@@ -15,4 +15,5 @@
  docker network create kafka-network
  git filter-repo --path .env.development --invert-paths
  git filter-repo --path .env --path .env.development --path .env.production --path .env.sa --invert-paths --force
-
+ 
+docker build -t auth:local -f apps/auth/Dockerfile .

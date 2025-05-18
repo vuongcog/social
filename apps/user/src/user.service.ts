@@ -1,56 +1,103 @@
-import { Injectable } from '@nestjs/common';
+// user-service/src/user/user.service.ts
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@app/database';
-import { KafkaService } from '@app/kafka';
+import { User } from '@app/database/generated/prisma';
 
 @Injectable()
 export class UserService {
     constructor(
-        private prisma: PrismaService,
-        private kafkaService: KafkaService,
+        private readonly prisma: PrismaService,
+        @Inject( CACHE_MANAGER ) private cacheManager: Cache,
     ) { }
 
-    async findAll() {
-        return this.prisma.user.findMany( {
-            select: {
-                id: true,
-                email: true,
-                name: true,
-            },
-        } );
-    }
+    async createUser( data: { email: string; name: string; password: string } ): Promise<User> {
+        const hashedPassword = await bcrypt.hash( data.password, 10 );
 
-    async findOne( id: string ) {
-        return this.prisma.user.findUnique( {
-            where: { id },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-            },
-        } );
-    }
-
-    async update( id: string, data: { name?: string } ) {
-        const user = await this.prisma.user.update( {
-            where: { id },
-            data,
-            select: {
-                id: true,
-                email: true,
-                name: true,
+        const user = await this.prisma.user.create( {
+            data: {
+                ...data,
+                password: hashedPassword,
             },
         } );
 
-        await this.kafkaService.produce( 'user.updated', user );
+        await this.cacheManager.del( `user:${ user.id }` );
+        await this.cacheManager.del( `user:email:${ user.email }` );
 
         return user;
     }
 
-    async remove( id: string ) {
-        await this.prisma.user.delete( { where: { id } } );
+    async findUserById( id: string ): Promise<User | null> {
+        const cacheKey = `user:${ id }`;
 
-        await this.kafkaService.produce( 'user.deleted', { id } );
+        const cachedUser = await this.cacheManager.get<User>( cacheKey );
+        if ( cachedUser ) {
+            return cachedUser;
+        }
 
-        return { success: true };
+        const user = await this.prisma.user.findUnique( {
+            where: { id },
+        } );
+
+        if ( user ) {
+            await this.cacheManager.set( cacheKey, user, 600000 );
+        }
+
+        return user;
+    }
+
+    async findUserByEmail( email: string ): Promise<User | null> {
+        const cacheKey = `user:email:${ email }`;
+
+        const cachedUser = await this.cacheManager.get<User>( cacheKey );
+        if ( cachedUser ) {
+            return cachedUser;
+        }
+
+        const user = await this.prisma.user.findUnique( {
+            where: { email },
+        } );
+
+        if ( user ) {
+            await this.cacheManager.set( cacheKey, user, 600000 );
+        }
+
+        return user;
+    }
+
+    async updateUser( id: string, data: Partial<User> ): Promise<User> {
+        const user = await this.prisma.user.update( {
+            where: { id },
+            data,
+        } );
+
+        const cacheKey = `user:${ id }`;
+        await this.cacheManager.set( cacheKey, user, 600000 );
+        if ( data.email ) {
+            await this.cacheManager.del( `user:email:${ user.email }` );
+        }
+
+        return user;
+    }
+
+    async deleteUser( id: string ): Promise<User> {
+        const user = await this.prisma.user.findUnique( {
+            where: { id },
+        } );
+
+        if ( !user ) {
+            throw new NotFoundException( `User with ID ${ id } not found` );
+        }
+
+        await this.prisma.user.delete( {
+            where: { id },
+        } );
+
+        await this.cacheManager.del( `user:${ id }` );
+        await this.cacheManager.del( `user:email:${ user.email }` );
+
+        return user;
     }
 }

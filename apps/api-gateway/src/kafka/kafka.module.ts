@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@app/config';
 import { CONSTANTS } from '@app/common';
-
+import { KafkaService } from './kafka.service';
+import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-breaker.service';
 @Module( {
     imports: [
         ClientsModule.registerAsync( [
             {
-                name: process.env.AUTH_SERVICE || CONSTANTS.SERVICES[ 'auth-service' ],
+                name: CONSTANTS.SERVICES[ 'auth-service' ],
                 imports: [ ConfigModule ],
                 inject: [ ConfigService ],
                 useFactory: ( configService: ConfigService ) => {
@@ -19,7 +20,7 @@ import { CONSTANTS } from '@app/common';
                 },
             },
             {
-                name: process.env.USER_SERVICE || CONSTANTS.SERVICES[ 'user-service' ],
+                name: CONSTANTS.SERVICES[ 'user-service' ],
                 imports: [ ConfigModule ],
                 inject: [ ConfigService ],
                 useFactory: ( configService: ConfigService ) => {
@@ -32,6 +33,9 @@ import { CONSTANTS } from '@app/common';
             },
         ] ),
     ],
-    exports: [ ClientsModule ],
+    providers: [ KafkaService, CircuitBreakerService ],
+
+    exports: [ KafkaService, ClientsModule ],
+
 } )
 export class KafkaModule { }
