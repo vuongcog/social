@@ -4,6 +4,7 @@ import type { LoginDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { Public } from './public.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { BaseResponse } from '@app/common';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller( 'auth' )
 export class AuthController {
@@ -38,6 +39,7 @@ export class AuthController {
     }
 
     @Public()
+    @UseGuards( LocalAuthGuard )
     @Post( 'login' )
     async login( @Body() loginDto: LoginDto ) {
         try {

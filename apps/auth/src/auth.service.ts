@@ -16,19 +16,48 @@ export class AuthService {
         @Inject( CACHE_MANAGER ) private cacheManager: Cache,
     ) { }
 
-    async validateUser( email: string, password: string ): Promise<any> {
-        const result: BaseResponse = await this.kafkaService.findByEmail( email );
-        if ( !result?.data ) {
-            throw new UnauthorizedException( 'Email hoặc mật khẩu không chính xác' );
-        }
+    async validateUser( email: string, password: string ): Promise<BaseResponse> {
+        try {
+            const result: BaseResponse = await this.kafkaService.findByEmail( email );
 
-        const isPasswordValid = await bcrypt.compare( password, result.data.password );
-        if ( !isPasswordValid ) {
-            throw new UnauthorizedException( 'Email hoặc mật khẩu không chính xác' );
-        }
+            if ( !result?.data ) {
+                const response: BaseResponse = {
+                    ...result,
+                    error: {
+                        ...result.error,
+                        primaryMessage: "Tài khoản này không tồn tại",
+                    },
+                    status: 'error',
+                }
+                throw ( response );
+            }
 
-        const { password: _, ...response } = result.data;
-        return response;
+            const isPasswordValid = await bcrypt.compare( password, result.data.password );
+            if ( !isPasswordValid ) {
+
+                const response: BaseResponse = {
+                    ...result,
+                    status: 'error',
+                    error: {
+                        ...result.error,
+                        primaryMessage: "Mật khẩu không đúng",
+                    },
+                }
+                throw ( response );
+            }
+
+            const { password: _, ...user } = result.data;
+
+            const response: BaseResponse = {
+                status: 'success',
+                message: "Đăng nhập thành công",
+                data: user
+            }
+            return response;
+        } catch ( error ) {
+            return throwCatch( error )
+
+        }
     }
 
 

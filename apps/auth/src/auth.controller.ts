@@ -64,8 +64,25 @@ export class AuthController {
     }
 
     @MessagePattern( CONSTANTS.KAFKA_TOPICS.AUTH_VALIDATE_USER )
-    async validateUser( @Payload() payload: any ) {
-        return this.authService.validateUser( payload.email, payload.password )
+    async validateUser( @Payload() payload: any ): Promise<BaseResponse> {
+
+        try {
+            const result = await this.authService.validateUser( payload.email, payload.password )
+            return result
+
+        } catch ( error ) {
+            if ( error.status ) {
+                return error as BaseResponse
+            }
+            else {
+                return {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+        }
     }
 
 

@@ -10,7 +10,7 @@ export interface BaseResponse<T = any> {
     error?: {
         break?: boolean,
         typeError?: string,
-        code: string;
+        code?: string;
         messages?: string[];
         primaryMessage?: string;
         details?: any;

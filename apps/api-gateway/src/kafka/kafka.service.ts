@@ -162,16 +162,23 @@ export class KafkaService implements OnModuleInit {
 
     async validateUser( email, password ) {
         try {
-            return await this.authServiceBreaker.fire( {
+            const result: BaseResponse = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_VALIDATE_USER,
                 payload: {
-                    email, password,
+                    email, password
                 },
             } );
 
+            if ( result?.error ) {
+                if ( result.error.break ) {
+                    throw result
+                }
+                return Promise.reject( result )
+            }
+            return result;
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'Authentication service is currently unavailable' );
+            throw throwCatch( error );
         }
     }
 
