@@ -64,6 +64,15 @@
         "tsConfigPath": "libs/database/tsconfig.lib.json"
       }
     },
+    "elasticsearch": {
+      "type": "application",
+      "root": "apps/elasticsearch",
+      "entryFile": "main",
+      "sourceRoot": "apps/elasticsearch/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/elasticsearch/tsconfig.app.json"
+      }
+    },
     "kafka": {
       "type": "library",
       "root": "libs/kafka",

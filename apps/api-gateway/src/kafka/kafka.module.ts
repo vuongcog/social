@@ -31,6 +31,18 @@ import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-break
                     };
                 },
             },
+            {
+                name: CONSTANTS.SERVICES[ 'elasticsearch_service' ],
+                imports: [ ConfigModule ],
+                inject: [ ConfigService ],
+                useFactory: ( configService: ConfigService ) => {
+                    const kafkaConnections: object = configService.get( 'api-gateway-service-connection' );
+
+                    return {
+                        ...kafkaConnections[ 'gateway-elasticsearch-service' ]
+                    };
+                },
+            },
         ] ),
     ],
     providers: [ KafkaService, CircuitBreakerService ],

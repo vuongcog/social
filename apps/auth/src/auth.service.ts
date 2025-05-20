@@ -1,11 +1,13 @@
+import { BaseResponse } from './../../../libs/common/src/interfaces/response.interface';
 // auth-service/src/auth/auth.service.ts
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { KafkaService } from './kafka/kafka.service';
 import type { LoginDto, TokenPayloadDto, RegisterDto } from '@app/common/dto/auth.dto';
+import { throwCatch } from '@app/common/utils/throw-catch';
 
 @Injectable()
 export class AuthService {
@@ -14,49 +16,65 @@ export class AuthService {
         @Inject( CACHE_MANAGER ) private cacheManager: Cache,
     ) { }
 
-    async register( registerDto: RegisterDto ) {
-        try {
-            const existingUser = await this.kafkaService.getUserByEmail( registerDto.email );
+    async validateUser( email: string, password: string ): Promise<any> {
+        const result: BaseResponse = await this.kafkaService.findByEmail( email );
+        if ( !result?.data ) {
+            throw new UnauthorizedException( 'Email hoặc mật khẩu không chính xác' );
+        }
 
-            if ( existingUser ) {
-                throw new Error( 'User already exists' );
+        const isPasswordValid = await bcrypt.compare( password, result.data.password );
+        if ( !isPasswordValid ) {
+            throw new UnauthorizedException( 'Email hoặc mật khẩu không chính xác' );
+        }
+
+        const { password: _, ...response } = result.data;
+        return response;
+    }
+
+
+    async register( registerDto: RegisterDto ): Promise<BaseResponse> {
+
+        try {
+            const resultUser: BaseResponse = await this.kafkaService.findByEmail( registerDto.email );
+
+            if ( resultUser.data ) {
+                const { data, ...responseData } = resultUser;
+                throw { ...responseData, status: "error" } as BaseResponse;
             }
 
-            const user = await this.kafkaService.createUser( registerDto );
+            const salt = await bcrypt.genSalt();
+            const hashedPassword = await bcrypt.hash( registerDto.password, salt );
 
-            return this.generateTokens( user );
-        } catch ( error ) {
-            console.error( 'Registration error:', error );
-            throw error;
+            const newUser: BaseResponse = await this.kafkaService.createUser( {
+                ...registerDto,
+                password: hashedPassword,
+                provider: 'local',
+            } );
+
+            const { password: _, ...result } = newUser.data;
+
+            const loginResult = await this.login( result );
+
+            const responseValue: BaseResponse = {
+                status: 'success',
+                message: 'Register is successfuly',
+                accessToken: loginResult.accessToken,
+                refresh: loginResult.refreshToken,
+            }
+            return responseValue
+        }
+        catch ( error: BaseResponse | any ) {
+
+            return throwCatch( error )
+
         }
     }
 
-    async login( loginDto: LoginDto ) {
-        try {
-            const user = await this.kafkaService.getUserByEmail( loginDto.email );
+    async login( user: any ) {
 
-            if ( !user ) {
-                throw new UnauthorizedException( 'Invalid credentials' );
-            }
+        const payload = { email: user.email, sub: user.id }
 
-            // Trong thực tế, password hash sẽ được trả về từ user service
-            // Ở đây giả định rằng chúng ta có thể lấy hash từ service đó
-            const userWithPassword = await this.kafkaService.getUserByEmail( loginDto.email );
-
-            const isPasswordValid = await bcrypt.compare(
-                loginDto.password,
-                userWithPassword.password,
-            );
-
-            if ( !isPasswordValid ) {
-                throw new UnauthorizedException( 'Invalid credentials' );
-            }
-
-            return this.generateTokens( user );
-        } catch ( error ) {
-            console.error( 'Login error:', error );
-            throw error;
-        }
+        return this.generateTokens( payload )
     }
 
     async validateToken( token: string ) {
@@ -90,6 +108,36 @@ export class AuthService {
         } catch ( error ) {
             throw new UnauthorizedException( 'Invalid token' );
         }
+    }
+
+    async validateGoogleUser( profile: any ) {
+        const { email, name } = profile;
+        let result = await this.kafkaService.findByEmail( email );
+
+
+        if ( !result?.data ) {
+            const randomPassword = Math.random().toString( 36 ).slice( -8 );
+            const salt = await bcrypt.genSalt();
+            const hashedPassword = await bcrypt.hash( randomPassword, salt );
+            const accountInforUser = {
+                email, name, password: hashedPassword, provider: 'google', providerId: profile.id
+            }
+            result = await this.kafkaService.createUser( accountInforUser )
+        }
+
+        const { password: _, ...response } = result.data;
+        return response;
+    }
+
+
+    async googleLogin( req ) {
+
+        if ( !req ) {
+            throw new UnauthorizedException( 'Không thể xác thực với Google' );
+        }
+
+
+        return this.login( req );
     }
 
     private generateTokens( user: any ) {

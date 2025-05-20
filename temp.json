@@ -1,1 +1,122 @@
-{"status":"ok","info":{"memory_heap":{"status":"up"},"disk":{"status":"up"},"services":{"status":"up","auth-service-liveness":{"status":"up","statusCode":200,"details":{"status":"ok","info":{"memory_heap":{"status":"up"},"disk":{"status":"up"}},"error":{},"details":{"memory_heap":{"status":"up"},"disk":{"status":"up"}}}},"auth-service-readiness":{"status":"up","statusCode":200,"details":{"status":"ok","info":{"kafka":{"status":"up"},"cache":{"status":"up"}},"error":{},"details":{"kafka":{"status":"up"},"cache":{"status":"up"}}}}}},"error":{},"details":{"memory_heap":{"status":"up"},"disk":{"status":"up"},"services":{"status":"up","auth-service-liveness":{"status":"up","statusCode":200,"details":{"status":"ok","info":{"memory_heap":{"status":"up"},"disk":{"status":"up"}},"error":{},"details":{"memory_heap":{"status":"up"},"disk":{"status":"up"}}}},"auth-service-readiness":{"status":"up","statusCode":200,"details":{"status":"ok","info":{"kafka":{"status":"up"},"cache":{"status":"up"}},"error":{},"details":{"kafka":{"status":"up"},"cache":{"status":"up"}}}}}}}
+{
+    "status": "ok",
+    "info": {
+        "memory_heap": {
+            "status": "up"
+        },
+        "disk": {
+            "status": "up"
+        },
+        "services": {
+            "status": "up",
+            "auth-service-liveness": {
+                "status": "up",
+                "statusCode": 200,
+                "details": {
+                    "status": "ok",
+                    "info": {
+                        "memory_heap": {
+                            "status": "up"
+                        },
+                        "disk": {
+                            "status": "up"
+                        }
+                    },
+                    "error": {},
+                    "details": {
+                        "memory_heap": {
+                            "status": "up"
+                        },
+                        "disk": {
+                            "status": "up"
+                        }
+                    }
+                }
+            },
+            "auth-service-readiness": {
+                "status": "up",
+                "statusCode": 200,
+                "details": {
+                    "status": "ok",
+                    "info": {
+                        "kafka": {
+                            "status": "up"
+                        },
+                        "cache": {
+                            "status": "up"
+                        }
+                    },
+                    "error": {},
+                    "details": {
+                        "kafka": {
+                            "status": "up"
+                        },
+                        "cache": {
+                            "status": "up"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "error": {},
+    "details": {
+        "memory_heap": {
+            "status": "up"
+        },
+        "disk": {
+            "status": "up"
+        },
+        "services": {
+            "status": "up",
+            "auth-service-liveness": {
+                "status": "up",
+                "statusCode": 200,
+                "details": {
+                    "status": "ok",
+                    "info": {
+                        "memory_heap": {
+                            "status": "up"
+                        },
+                        "disk": {
+                            "status": "up"
+                        }
+                    },
+                    "error": {},
+                    "details": {
+                        "memory_heap": {
+                            "status": "up"
+                        },
+                        "disk": {
+                            "status": "up"
+                        }
+                    }
+                }
+            },
+            "auth-service-readiness": {
+                "status": "up",
+                "statusCode": 200,
+                "details": {
+                    "status": "ok",
+                    "info": {
+                        "kafka": {
+                            "status": "up"
+                        },
+                        "cache": {
+                            "status": "up"
+                        }
+                    },
+                    "error": {},
+                    "details": {
+                        "kafka": {
+                            "status": "up"
+                        },
+                        "cache": {
+                            "status": "up"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

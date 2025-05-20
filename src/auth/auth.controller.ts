@@ -4,8 +4,6 @@ import { Public } from "./public.decorator";
 import { CreateUserDTO } from "src/api/user/dto/create-user.dto";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
-import { ConfigService } from "@nestjs/config";
-import { console } from "node:inspector/promises";
 
 @Controller( "auth" )
 export class AuthController {
@@ -24,6 +22,7 @@ export class AuthController {
     async login( @Req() req ) {
         return this.authService.login( req.user );
     }
+
 
     @Public()
     @UseGuards( GoogleAuthGuard )

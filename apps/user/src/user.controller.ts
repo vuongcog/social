@@ -2,6 +2,7 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from './user.service';
 import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
+import type { BaseResponse } from '@app/common';
 
 @Controller()
 export class UserController {
@@ -9,8 +10,22 @@ export class UserController {
 
     @MessagePattern( KAFKA_TOPICS.USER_CREATED )
     async createUser( @Payload() data: { email: string; name: string; password: string } ) {
-        const user = await this.userService.createUser( data );
-        return { id: user.id, email: user.email, name: user.name };
+        try {
+            const user = await this.userService.createUser( data );
+            return user
+        } catch ( error ) {
+            if ( error.status ) {
+                return error as BaseResponse
+            }
+            else {
+                throw {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+        }
     }
 
     @MessagePattern( KAFKA_TOPICS.USER_GET )
@@ -40,5 +55,25 @@ export class UserController {
     async deleteUser( @Payload() data: { id: string } ) {
         const user = await this.userService.deleteUser( data.id );
         return { success: true, id: user.id };
+    }
+
+    @MessagePattern( KAFKA_TOPICS.USER_FIND_BY_EMAIL )
+    async findByEmail( @Payload() email: string ) {
+        try {
+            const user = await this.userService.findUserByEmail( email );
+            return user
+        } catch ( error ) {
+            if ( error.status ) {
+                return error as BaseResponse
+            }
+            else {
+                return {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+        }
     }
 }

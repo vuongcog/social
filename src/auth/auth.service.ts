@@ -1,3 +1,4 @@
+import { BaseResponse } from './../../libs/common/src/interfaces/response.interface';
 import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { UserService } from "src/api/user/user.service";
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +9,7 @@ import { console } from "node:inspector/promises";
 @Injectable()
 export class AuthService {
     constructor( private userService: UserService, private jwtService: JwtService ) { }
+
     async validateUser( email: string, password: string ): Promise<any> {
         const user = await this.userService.findByEmail( email );
         if ( !user ) {
@@ -33,23 +35,51 @@ export class AuthService {
         };
     }
 
-    async register( createUserDto: CreateUserDTO ) {
-        const existingUser = await this.userService.findByEmail( createUserDto.email );
-        if ( existingUser ) {
-            throw new ConflictException( 'Email đã được sử dụng' );
+    async register( createUserDto: CreateUserDTO ): Promise<BaseResponse> {
+        try {
+
+            const responseUser: BaseResponse = await this.userService.findByEmail( createUserDto.email );
+
+            if ( responseUser.data ) {
+                throw ( responseUser );
+            }
+
+            const salt = await bcrypt.genSalt();
+            const hashedPassword = await bcrypt.hash( createUserDto.password, salt );
+
+            const newUser: BaseResponse = await this.userService.create( {
+                ...createUserDto,
+                password: hashedPassword,
+                provider: 'local',
+            } );
+
+            const { password: _, ...result } = newUser.data;
+
+            const loginResult = this.login( result );
+
+            const responseValue: BaseResponse = {
+                status: 'success',
+                message: 'Login is Successfuly',
+                data: loginResult,
+            }
+            
+            return responseValue
+
+
+        } catch ( error: BaseResponse | any ) {
+            if ( error.status ) {
+                throw error as BaseResponse
+            }
+            else {
+                throw {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+
         }
-
-        const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash( createUserDto.password, salt );
-
-        const newUser = await this.userService.create( {
-            ...createUserDto,
-            password: hashedPassword,
-            provider: 'local',
-        } );
-
-        const { password: _, ...result } = newUser;
-        return this.login( result );
     }
 
     async validateGoogleUser( profile: any ) {
@@ -76,6 +106,8 @@ export class AuthService {
             throw new UnauthorizedException( 'Không thể xác thực với Google' );
         }
 
-        return this.login( req.user );
+        const result = await this.validateGoogleUser( req );
+
+        return this.login( result );
     }
 }

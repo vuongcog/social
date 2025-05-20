@@ -27,5 +27,16 @@ export default registerAs( 'api-gateway-service-connection', () => ( {
                 groupId: CONSTANTS.GROUP_ID.GATEWAY_USER_GROUP_ID,
             },
         },
+    }, "gateway-elasticsearch-service": {
+        transport: Transport.KAFKA,
+        options: {
+            client: {
+                clientId: CONSTANTS.CLIENT_ID.API_GATEWAY_ELASTICSEARCH_CLIENT_ID,
+                brokers: appUtils.convertBrokers()
+            },
+            consumer: {
+                groupId: CONSTANTS.GROUP_ID.GATEWAY_ELASTICSEARCH_GROUP_ID,
+            },
+        },
     }
 } ) );

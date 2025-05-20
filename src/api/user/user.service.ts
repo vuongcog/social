@@ -23,7 +23,6 @@ export class UserService {
         const user = await this.prismaService.user.create( {
             data,
         } );
-        const a = 1;
         await this.userKafkaService.emitUserCreated( user );
 
         return user;

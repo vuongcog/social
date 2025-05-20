@@ -16,4 +16,7 @@
  git filter-repo --path .env.development --invert-paths
  git filter-repo --path .env --path .env.development --path .env.production --path .env.sa --invert-paths --force
  
-docker build -t auth:local -f apps/auth/Dockerfile .
+ docker build -t auth:local -f apps/auth/Dockerfile .
+
+ docker compose -f 'docker-compose.yml' up --build 'container'
+ docker compose -f 'docker-compose.yml' down kibana

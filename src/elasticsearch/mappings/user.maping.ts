@@ -1,4 +1,3 @@
-// src/elasticsearch/mappings/user.mapping.ts
 export const userMapping = {
     mappings: {
         properties: {

@@ -21,7 +21,6 @@ export class UserKafkaService implements OnModuleInit {
     }
 
     async onModuleInit() {
-
         await this.kafkaService.consume( [ this.USER_TOPIC ], async ( message ) => {
             if ( !message.value ) return;
             try {

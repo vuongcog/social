@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { DatabaseModule } from '@app/database';
-import { KafkaModule } from '@app/kafka';
 import { CacheModule } from '@nestjs/cache-manager';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module( {
     imports: [ DatabaseModule, KafkaModule, CacheModule.register( {

@@ -1,7 +1,8 @@
 // auth-service/src/kafka/kafka.service.ts
-import { CONSTANTS } from '@app/common';
+import { CONSTANTS, type BaseResponse } from '@app/common';
 import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-breaker.service';
 import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
+import { throwCatch } from '@app/common/utils/throw-catch';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom, timeout, catchError, of } from 'rxjs';
@@ -22,7 +23,7 @@ export class KafkaService implements OnModuleInit {
     ) {
         this.userServiceBreaker = this.circuitBreakerService.create(
             CONSTANTS.CLIENT_ID.USER_CLIENT_ID,
-            this.getUserData.bind( this ),
+            this.callUserService.bind( this ),
             { timeout: 5000 }
         );
     }
@@ -31,6 +32,7 @@ export class KafkaService implements OnModuleInit {
 
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_GET );
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_CREATED );
+        this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_FIND_BY_EMAIL )
 
         this.healthClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_HEALTH )
 
@@ -40,59 +42,96 @@ export class KafkaService implements OnModuleInit {
         ] );
 
     }
-    private async getUserData( data: { id?: string; email?: string } ) {
+
+
+    private async callUserService( data: { topic: string; payload: any } ) {
         return lastValueFrom(
-            this.userClient.send( KAFKA_TOPICS.USER_GET, data ).pipe(
+            this.userClient.send( data.topic, data.payload ).pipe(
                 timeout( 3000 ),
                 catchError( err => {
-                    console.error( 'Error calling User Service:', err );
+                    console.error( `Error calling User Service (${ data.topic }):`, err );
                     throw err;
                 } )
             )
         );
     }
 
+    async findByEmail( data: string ): Promise<BaseResponse> {
+        try {
+            const result = await this.userServiceBreaker.fire( {
+                topic: KAFKA_TOPICS.USER_FIND_BY_EMAIL,
+                payload: data
+            } );
+
+            if ( result?.error ) {
+                if ( result.error.break ) {
+                    throw result
+                }
+                return Promise.reject( result )
+            }
+
+            return result;
+
+        } catch ( error: BaseResponse | any ) {
+            throw throwCatch( error );
+
+
+        }
+    }
 
     async getUserById( id: string ) {
         try {
-            return await this.userServiceBreaker.fire( { id } );
-        } catch ( error ) {
-            console.error( 'Circuit is open, returning fallback data' );
-            return null;
+            return await this.userServiceBreaker.fire( {
+                topic: KAFKA_TOPICS.USER_GET,
+                payload: {
+                    id
+                },
+            } );
+        } catch ( error: BaseResponse | any ) {
+            if ( error.status ) {
+                throw error as BaseResponse
+            }
+            else {
+                throw {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+
         }
     }
 
-    async getUserByEmail( email: string ) {
+
+
+    async createUser( userData: any ): Promise<BaseResponse> {
+
         try {
+            return await this.userServiceBreaker.fire( {
+                topic: KAFKA_TOPICS.USER_CREATED,
+                payload: userData
+            } );
 
-            return await this.userServiceBreaker.fire( { email } );
+        } catch ( error: BaseResponse | any ) {
+            if ( error.status ) {
+                throw error as BaseResponse
+            }
+            else {
+                throw {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
 
-        } catch ( error ) {
-            console.error( 'Circuit is open, returning fallback data' );
-            return null;
         }
-    }
 
-    async createUser( userData: { email: string; name: string; password: string } ) {
-        try {
-            return await lastValueFrom(
-                this.userClient.send( KAFKA_TOPICS.USER_CREATED, userData ).pipe(
-                    timeout( 5000 ),
-                    catchError( err => {
-                        console.error( 'Error creating user:', err );
-                        throw err;
-                    } )
-                )
-            );
-        } catch ( error ) {
-            console.error( 'Failed to create user:', error );
-            throw error;
-        }
     }
 
     async ping(): Promise<boolean> {
         try {
-            // Trong thực tế có thể dùng một topic riêng cho health check
             const result = await lastValueFrom(
                 this.healthClient.send( CONSTANTS.KAFKA_TOPICS.AUTH_HEALTH, { timestamp: Date.now() } ).pipe(
                     timeout( 1000 ),
