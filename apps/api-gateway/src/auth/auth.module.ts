@@ -13,6 +13,6 @@ import { GoogleStrategy } from './passport/google.strategy';
         max: 1000,
     } ) ],
     controllers: [ AuthController ],
-    providers: [ LocalStrategy, JwtStrategy, GoogleStrategy ],
+    providers: [ LocalStrategy, GoogleStrategy ],
 } )
 export class AuthModule { }

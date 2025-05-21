@@ -1,5 +1,3 @@
-import { BaseResponse } from './../../../libs/common/src/interfaces/response.interface';
-// auth-service/src/auth/auth.service.ts
 import { Injectable, Inject, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -8,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import { KafkaService } from './kafka/kafka.service';
 import type { LoginDto, TokenPayloadDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { throwCatch } from '@app/common/utils/throw-catch';
+import type { async } from 'rxjs';
+import { CONSTANTS, type BaseResponse } from '@app/common';
 
 @Injectable()
 export class AuthService {
@@ -21,8 +21,10 @@ export class AuthService {
             const result: BaseResponse = await this.kafkaService.findByEmail( email );
 
             if ( !result?.data ) {
+                const { data, ...other } = result
+
                 const response: BaseResponse = {
-                    ...result,
+                    ...other,
                     error: {
                         ...result.error,
                         primaryMessage: "Tài khoản này không tồn tại",
@@ -34,9 +36,9 @@ export class AuthService {
 
             const isPasswordValid = await bcrypt.compare( password, result.data.password );
             if ( !isPasswordValid ) {
-
+                const { data, ...other } = result
                 const response: BaseResponse = {
-                    ...result,
+                    ...other,
                     status: 'error',
                     error: {
                         ...result.error,
@@ -55,7 +57,7 @@ export class AuthService {
             }
             return response;
         } catch ( error ) {
-            return throwCatch( error )
+            throw throwCatch( error )
 
         }
     }
@@ -103,39 +105,96 @@ export class AuthService {
 
         const payload = { email: user.email, sub: user.id }
 
-        return this.generateTokens( payload )
-    }
+        const token = this.generateTokens( payload )
 
-    async validateToken( token: string ) {
-        const cacheKey = `token:${ token }`;
+        const cacheKey = `validated_token:${ token.accessToken }`;
 
-        // Check blacklist
-        const isBlacklisted = await this.cacheManager.get( `blacklist:${ token }` );
+        const isBlacklisted = await this.cacheManager.get( `blacklist:${ token.accessToken }` );
+
         if ( isBlacklisted ) {
             throw new UnauthorizedException( 'Token is invalid' );
         }
+        const catchTokenValue = { email: user.email, userId: user.id } as TokenPayloadDto;
+        await this.cacheManager.set( `${ cacheKey }`, catchTokenValue, 1 );
 
-        // Check cache for validated token
-        const cachedValidation = await this.cacheManager.get( cacheKey );
-        if ( cachedValidation ) {
-            return cachedValidation;
+        return token
+
+    }
+
+    async localLogin( user: any ): Promise<BaseResponse> {
+        try {
+            if ( !user?.email ) {
+                throw {
+                    status: 'error',
+                    error: {
+                        message: "Vui lòng nhập email"
+                    }
+                } as BaseResponse
+            }
+            if ( !user?.id ) {
+                throw {
+                    status: 'error',
+                    error: {
+                        message: "User không tồn tại"
+                    }
+                } as BaseResponse
+            }
+            const tokens = await this.login( user )
+            return {
+                status: 'success',
+                message: "Đăng nhập thành công",
+                data: tokens,
+            }
+        } catch ( error ) {
+            throw throwCatch( error )
         }
+    }
+
+    async validateToken( token: string ): Promise<BaseResponse> {
 
         try {
-            const decoded = jwt.verify( token, process.env.JWT_SECRET || "huynhnhatvuong1" ) as TokenPayloadDto;
-
-            // Check if user still exists
-            const user = await this.kafkaService.getUserById( decoded.userId );
-            if ( !user ) {
-                throw new UnauthorizedException( 'User no longer exists' );
+            const cacheKey = `validated_token:${ token }`;
+            const isBlacklisted = await this.cacheManager.get( `blacklist:${ token }` );
+            if ( isBlacklisted ) {
+                throw {
+                    status: "error",
+                    error: {
+                        message: "Tài khoản người dùng đã bị cấm",
+                    }
+                } as BaseResponse;
             }
 
-            // Cache validation result
-            await this.cacheManager.set( cacheKey, { userId: decoded.userId, email: decoded.email }, 300000 ); // 5 minutes
+            const cachedValidation = await this.cacheManager.get( cacheKey );
 
-            return { userId: decoded.userId, email: decoded.email };
+            if ( cachedValidation ) {
+                return {
+                    status: 'success',
+                    message: "Xác thực thành công",
+                }
+            }
+
+            const decoded = jwt.verify( token, process.env.JWT_SECRET || "huynhnhatvuong1" ) as TokenPayloadDto;
+
+            const user = await this.kafkaService.getUserById( decoded.userId );
+
+            if ( !user ) {
+                throw {
+                    status: "error",
+                    error: {
+                        message: "Tài khoản người dùng không còn tồn tại",
+                    }
+                } as BaseResponse;
+
+            }
+            const data = { userId: decoded.userId, email: decoded.email };
+            await this.cacheManager.set( cacheKey, { userId: decoded.userId, email: decoded.email }, CONSTANTS.CACHE_EXPRIES[ '30m' ] );
+            return {
+                status: 'success',
+                data
+            };
+
         } catch ( error ) {
-            throw new UnauthorizedException( 'Invalid token' );
+            throw throwCatch( error );
         }
     }
 
@@ -171,14 +230,14 @@ export class AuthService {
 
     private generateTokens( user: any ) {
         const payload: TokenPayloadDto = {
-            userId: user.id,
+            userId: user.sub,
             email: user.email,
         };
 
         const accessToken = jwt.sign(
             payload,
             process.env.JWT_SECRET || "huynhnhatvuong1",
-            { expiresIn: '15m' },
+            { expiresIn: '1d' },
         );
 
         const refreshToken = jwt.sign(
@@ -194,7 +253,9 @@ export class AuthService {
     }
 
     async logout( token: string ) {
+
         await this.cacheManager.set( `blacklist:${ token }`, true, 86400 );
         return { success: true };
+
     }
 }

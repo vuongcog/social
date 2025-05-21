@@ -7,6 +7,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom, timeout, catchError, type async } from 'rxjs';
 import { throwCatch } from '@app/common/utils/throw-catch';
+import type { UpdateDto } from '@app/common/dto/user.dto';
 @Injectable()
 export class KafkaService implements OnModuleInit {
     private authServiceBreaker: any;
@@ -58,7 +59,6 @@ export class KafkaService implements OnModuleInit {
         // User Service
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_GET );
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_UPDATED );
-        this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_DELETED );
 
         //ElasticSerach Service
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_DELETE_INDEX )
@@ -136,13 +136,21 @@ export class KafkaService implements OnModuleInit {
 
     async login( credentials: any ) {
         try {
-            return await this.authServiceBreaker.fire( {
+            const result: BaseResponse = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_LOGIN,
                 payload: credentials,
             } );
+
+            if ( result?.error ) {
+                if ( result.error.break ) {
+                    throw result
+                }
+                return Promise.reject( result )
+            }
+            return result;
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'Authentication service is currently unavailable' );
+            throw throwCatch( error );
         }
     }
 
@@ -196,15 +204,25 @@ export class KafkaService implements OnModuleInit {
     }
 
 
-    async validateToken( token: string ) {
+    async validateToken( token: string ): Promise<BaseResponse> {
         try {
-            return await this.authServiceBreaker.fire( {
+            const result: BaseResponse = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_VALIDATE,
-                payload: { token },
+                payload: {
+                    token
+                },
             } );
+
+            if ( result?.error ) {
+                if ( result.error.break ) {
+                    throw result
+                }
+                return Promise.reject( result )
+            }
+            return result;
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'Authentication service is currently unavailable' );
+            throw throwCatch( error );
         }
     }
 
@@ -220,29 +238,31 @@ export class KafkaService implements OnModuleInit {
         }
     }
 
-    async updateUser( id: string, userData: any ) {
+
+
+    async updateUser( id: string, userData: UpdateDto ) {
         try {
-            return await this.userServiceBreaker.fire( {
+            const result: BaseResponse = await this.userServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.USER_UPDATED,
-                payload: { id, userData },
+                payload: {
+                    id, userData
+                },
             } );
+
+            if ( result?.error ) {
+                if ( result.error.break ) {
+                    throw result
+                }
+                return Promise.reject( result )
+            }
+            return result;
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'User service is currently unavailable' );
+            throw throwCatch( error );
         }
     }
 
-    async deleteUser( id: string ) {
-        try {
-            return await this.userServiceBreaker.fire( {
-                topic: KAFKA_TOPICS.USER_DELETED,
-                payload: { id },
-            } );
-        } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'User service is currently unavailable' );
-        }
-    }
+
     async createIndex() {
         try {
             return await this.authServiceBreaker.fire( {

@@ -32,16 +32,50 @@ export class AuthController {
     }
 
 
+
+
     @MessagePattern( KAFKA_TOPICS.AUTH_LOGIN )
     async login( @Payload() loginDto: LoginDto ) {
-        return this.authService.login( loginDto );
+        try {
+            const result: BaseResponse = await this.authService.localLogin( loginDto );
+            return result
+
+        } catch ( error ) {
+            if ( error.status ) {
+                return error as BaseResponse
+            }
+            else {
+                return {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+        }
     }
 
 
 
     @MessagePattern( KAFKA_TOPICS.AUTH_VALIDATE )
-    async validateToken( @Payload() data: { token: string } ) {
-        return this.authService.validateToken( data.token );
+    async validateToken( @Payload() payload: { token: string } ) {
+        try {
+            const result: BaseResponse = await this.authService.validateToken( payload.token );
+            return result
+
+        } catch ( error ) {
+            if ( error.status ) {
+                return error as BaseResponse
+            }
+            else {
+                return {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse;
+            }
+        }
     }
 
 

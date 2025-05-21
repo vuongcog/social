@@ -1,7 +1,6 @@
 export enum KAFKA_TOPICS {
     USER_CREATED = 'user.created',
     USER_UPDATED = 'user.updated',
-    USER_DELETED = 'user.deleted',
     USER_GET = 'user.get',
     USER_FIND_BY_EMAIL = 'user.find.by.email',
     USER_HEALTH = 'user.health',

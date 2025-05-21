@@ -6,7 +6,6 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 @Injectable()
 export class JwtStrategy extends PassportStrategy( Strategy ) {
     constructor( configService: ConfigService ) {
-        const a = configService.get<string>( 'JWT_SECRET' )
         super( {
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
@@ -16,6 +15,6 @@ export class JwtStrategy extends PassportStrategy( Strategy ) {
 
     async validate( payload: any ) {
 
-        return { id: payload.sub, email: payload.email };
+        return { id: payload.userId, email: payload.email, haha: "hahaha" };
     }
 }

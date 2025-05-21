@@ -8,6 +8,7 @@ export interface BaseResponse<T = any> {
     accessToken?: string,
     refresh?: string,
     error?: {
+        message?: string,
         break?: boolean,
         typeError?: string,
         code?: string;

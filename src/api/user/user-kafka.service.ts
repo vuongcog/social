@@ -43,10 +43,6 @@ export class UserKafkaService implements OnModuleInit {
                 await this.esService.indexDocument( 'users', payload.id, payload );
                 this.logger.log( `Updated user in Elasticsearch: ${ payload.id }` );
                 break;
-            case 'USER_DELETED':
-                await this.esService.deleteDocument( 'users', payload.id );
-                this.logger.log( `Deleted user from Elasticsearch: ${ payload.id }` );
-                break;
             default:
                 this.logger.warn( `Unknown event type: ${ type }` );
         }

@@ -23,8 +23,9 @@ export class RegisterDto {
     providerId?: string;
 }
 
+
 export class LoginDto {
-    
+
     @IsEmail()
     email: string;
 

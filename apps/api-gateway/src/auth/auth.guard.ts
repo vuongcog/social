@@ -4,6 +4,7 @@ import { KafkaService } from '../kafka/kafka.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import { Reflector } from '@nestjs/core';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -13,6 +14,7 @@ export class AuthGuard implements CanActivate {
     ) { }
 
     async canActivate( context: ExecutionContext ): Promise<boolean> {
+
         const request = context.switchToHttp().getRequest();
         const authHeader = request.headers.authorization;
 
@@ -22,8 +24,8 @@ export class AuthGuard implements CanActivate {
 
         const token = authHeader.split( ' ' )[ 1 ];
 
-        // Kiểm tra token trong cache
         const cacheKey = `validated_token:${ token }`;
+
         const cachedUser = await this.cacheManager.get( cacheKey );
 
         if ( cachedUser ) {
@@ -32,17 +34,14 @@ export class AuthGuard implements CanActivate {
         }
 
         try {
-            // Xác thực token qua Auth Service
             const user = await this.kafkaService.validateToken( token );
 
             if ( !user ) {
                 throw new UnauthorizedException( 'Invalid token' );
             }
 
-            // Lưu vào cache để sử dụng lần sau
-            await this.cacheManager.set( cacheKey, user, 300000 ); // 5 phút
-
             request.user = user;
+
             return true;
         } catch ( error ) {
             throw new UnauthorizedException( 'Authentication failed' );

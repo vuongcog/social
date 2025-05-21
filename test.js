@@ -13,4 +13,13 @@ function getValue() {
     }
 
 }
-test()
+
+// try {
+//   throw Error("adasd")
+// } catch (error) {
+//   console.log("hello")
+//   throw ("adasd")
+// }
+
+console.log("Thông tin bình thường");
+console.error("Đây là lỗi");

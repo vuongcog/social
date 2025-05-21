@@ -2,9 +2,12 @@
 import { Controller, Get, Put, Delete, Param, Body, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
 import { KafkaService } from '../kafka/kafka.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { Public } from '../auth/public.decorator';
+import type { UpdateDto } from '@app/common/dto/user.dto';
+import type { BaseResponse } from '@app/common';
 
 @Controller( 'users' )
-@UseGuards( AuthGuard )
+// @UseGuards( AuthGuard )
 export class UserController {
     constructor( private readonly kafkaService: KafkaService ) { }
 
@@ -40,27 +43,34 @@ export class UserController {
         }
     }
 
-    @Put( 'me' )
-    async updateProfile( @Request() req, @Body() userData: any ) {
+
+    @Put( ':id' )
+    async update( @Body() updateDto: UpdateDto, @Param( 'id' ) id: string, @Request() req ) {
         try {
-            return await this.kafkaService.updateUser( req.user.userId, userData );
+
+            const result = await this.kafkaService.updateUser( id, updateDto );
+
+            if ( result.status === "error" ) {
+                throw result;
+            }
+            return result
+
         } catch ( error ) {
-            throw new HttpException(
-                error.message || 'Failed to update profile',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
+            if ( error.status ) {
+                throw new HttpException( error as BaseResponse, HttpStatus.BAD_REQUEST,
+                )
+            }
+            else {
+                throw new HttpException( {
+                    status: 'error',
+                    error: {
+                        details: error,
+                    }
+                } as BaseResponse, HttpStatus.BAD_REQUEST )
+            }
         }
     }
 
-    @Delete( 'me' )
-    async deleteProfile( @Request() req ) {
-        try {
-            return await this.kafkaService.deleteUser( req.user.userId );
-        } catch ( error ) {
-            throw new HttpException(
-                error.message || 'Failed to delete profile',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-        }
-    }
+
+
 }

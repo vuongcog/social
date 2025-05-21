@@ -9,11 +9,15 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import * as dotenv from 'dotenv';
 import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
+import { JwtStrategy } from './auth/passport/jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
 
 dotenv.config();
 @Module( {
     imports: [
         ConfigModule,
+        PassportModule.register( { defaultStrategy: 'jwt' } ),
+
         CacheModule.register( {
             isGlobal: true,
             ttl: 300000,
@@ -29,6 +33,9 @@ dotenv.config();
     providers: [ {
         provide: APP_GUARD,
         useClass: JwtAuthGuard,
-    } ],
+
+    },
+        JwtStrategy
+    ],
 } )
 export class AppModule { }
