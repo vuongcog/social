@@ -1,6 +1,8 @@
+import type { HttpStatus } from "@nestjs/common";
 
 
 export interface BaseResponse<T = any> {
+    statusCode: HttpStatus,
     status: 'success' | 'error';
     data?: T;
     message?: string,

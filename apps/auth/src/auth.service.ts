@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { Injectable, Inject, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -6,7 +7,6 @@ import * as bcrypt from 'bcrypt';
 import { KafkaService } from './kafka/kafka.service';
 import type { LoginDto, TokenPayloadDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { throwCatch } from '@app/common/utils/throw-catch';
-import type { async } from 'rxjs';
 import { CONSTANTS, type BaseResponse } from '@app/common';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class AuthService {
         @Inject( CACHE_MANAGER ) private cacheManager: Cache,
     ) { }
 
-    async validateUser( email: string, password: string ): Promise<BaseResponse> {
+    async validateUser( email: string, password: string ): Promise<BaseResponse<LoginDto>> {
         try {
             const result: BaseResponse = await this.kafkaService.findByEmail( email );
 
@@ -30,6 +30,7 @@ export class AuthService {
                         primaryMessage: "Tài khoản này không tồn tại",
                     },
                     status: 'error',
+                    statusCode: HttpStatus.NOT_FOUND,
                 }
                 throw ( response );
             }
@@ -39,6 +40,7 @@ export class AuthService {
                 const { data, ...other } = result
                 const response: BaseResponse = {
                     ...other,
+                    statusCode: HttpStatus.UNAUTHORIZED,
                     status: 'error',
                     error: {
                         ...result.error,
@@ -49,16 +51,21 @@ export class AuthService {
             }
 
             const { password: _, ...user } = result.data;
+            const loginResponseData: LoginDto = {
+                email: result.data.email,
+                id: result.data.id,
+            }
 
-            const response: BaseResponse = {
+            const response: BaseResponse<LoginDto> = {
+                statusCode: HttpStatus.CREATED,
                 status: 'success',
                 message: "Đăng nhập thành công",
-                data: user
+                data: loginResponseData
             }
+
             return response;
         } catch ( error ) {
             throw throwCatch( error )
-
         }
     }
 
@@ -70,7 +77,7 @@ export class AuthService {
 
             if ( resultUser.data ) {
                 const { data, ...responseData } = resultUser;
-                throw { ...responseData, status: "error" } as BaseResponse;
+                throw { ...responseData, status: "error", statusCode: HttpStatus.CONFLICT } as BaseResponse;
             }
 
             const salt = await bcrypt.genSalt();
@@ -87,20 +94,176 @@ export class AuthService {
             const loginResult = await this.login( result );
 
             const responseValue: BaseResponse = {
+                statusCode: HttpStatus.CREATED,
                 status: 'success',
                 message: 'Register is successfuly',
-                accessToken: loginResult.accessToken,
-                refresh: loginResult.refreshToken,
+                data: {
+                    ...newUser.data,
+                    accessToken: loginResult.accessToken,
+                    refresh: loginResult.refreshToken,
+                },
+
             }
             return responseValue
         }
         catch ( error: BaseResponse | any ) {
 
-            return throwCatch( error )
+            throw throwCatch( error )
 
         }
     }
 
+
+
+    async localLogin( user: any ): Promise<BaseResponse> {
+        try {
+            if ( !user?.email ) {
+                throw {
+                    statusCode: HttpStatus.BAD_REQUEST,
+                    status: 'error',
+                    error: {
+                        message: "Vui lòng nhập email"
+                    }
+                } as BaseResponse
+            }
+            if ( !user?.id ) {
+                throw {
+                    statusCode: HttpStatus.NOT_FOUND,
+                    status: 'error',
+                    error: {
+                        message: "User không tồn tại"
+                    }
+                } as BaseResponse
+            }
+            const tokens = await this.login( user )
+            return {
+                statusCode: HttpStatus.BAD_GATEWAY,
+                status: 'success',
+                message: "Đăng nhập thành công",
+                data: tokens,
+            }
+        } catch ( error ) {
+            throw throwCatch( error )
+        }
+    }
+
+    async validateToken( token: string ): Promise<BaseResponse> {
+
+        try {
+            const cacheKey = `validated_token:${ token }`;
+            const isBlacklisted = await this.cacheManager.get( `blacklist:${ token }` );
+            if ( isBlacklisted ) {
+                throw {
+                    statusCode: HttpStatus.FORBIDDEN,
+                    status: "error",
+                    error: {
+                        message: "Tài khoản người dùng đã bị cấm",
+                    }
+                } as BaseResponse;
+            }
+
+            const cachedValidation = await this.cacheManager.get( cacheKey );
+
+            if ( cachedValidation ) {
+                return {
+                    statusCode: HttpStatus.CREATED,
+                    status: 'success',
+                    message: "Xác thực thành công",
+                    data: cachedValidation,
+                }
+            }
+
+            const decoded = jwt.verify( token, process.env.JWT_SECRET || "huynhnhatvuong1" ) as TokenPayloadDto;
+
+            const user = await this.kafkaService.getUserById( decoded.userId );
+
+            if ( !user?.data ) {
+                throw {
+                    statusCode: HttpStatus.NOT_FOUND,
+                    status: "error",
+                    error: {
+                        message: "Tài khoản người dùng không còn tồn tại",
+                    }
+                } as BaseResponse;
+
+            }
+            const data = { userId: decoded.userId, email: decoded.email };
+            await this.cacheManager.set( cacheKey, { userId: decoded.userId, email: decoded.email }, CONSTANTS.CACHE_EXPRIES[ '30m' ] );
+            return {
+                statusCode: HttpStatus.CREATED,
+                status: 'success',
+                data
+            };
+
+        } catch ( error ) {
+            throw throwCatch( error );
+        }
+    }
+
+    async validateGoogleUser( profile: any ): Promise<BaseResponse> {
+
+        try {
+
+            const { email, name } = profile;
+
+            let result = await this.kafkaService.findByEmail( email );
+
+
+            if ( !result?.data ) {
+                const randomPassword = Math.random().toString( 36 ).slice( -8 );
+                const salt = await bcrypt.genSalt();
+                const hashedPassword = await bcrypt.hash( randomPassword, salt );
+                const accountInforUser = {
+                    email, name, password: hashedPassword, provider: 'google', providerId: profile.id
+                }
+                result = await this.kafkaService.createUser( accountInforUser )
+            }
+
+            const { password: _, ...response } = result.data;
+
+            return {
+                statusCode: HttpStatus.OK,
+                status: "success",
+                message: "Xác thực thành công",
+                data: response,
+            }
+
+        } catch ( error ) {
+            throw throwCatch( error )
+
+        }
+    }
+
+
+    async googleLogin( req ): Promise<BaseResponse> {
+
+        try {
+            if ( !req ) {
+                throw {
+                    status: "error",
+                    statusCode: HttpStatus.BAD_REQUEST,
+                    error: {
+                        message: "Thông tin không đầy đủ"
+                    }
+                } as BaseResponse
+
+            }
+            const token = await this.login( req );
+
+            return {
+                status: "success",
+                statusCode: HttpStatus.OK,
+                message: "Đăng nhập thành công",
+                data: token,
+            }
+
+        } catch ( error: BaseResponse | any ) {
+
+            throw throwCatch( error )
+
+        }
+
+    }
     async login( user: any ) {
 
         const payload = { email: user.email, sub: user.id }
@@ -119,113 +282,6 @@ export class AuthService {
 
         return token
 
-    }
-
-    async localLogin( user: any ): Promise<BaseResponse> {
-        try {
-            if ( !user?.email ) {
-                throw {
-                    status: 'error',
-                    error: {
-                        message: "Vui lòng nhập email"
-                    }
-                } as BaseResponse
-            }
-            if ( !user?.id ) {
-                throw {
-                    status: 'error',
-                    error: {
-                        message: "User không tồn tại"
-                    }
-                } as BaseResponse
-            }
-            const tokens = await this.login( user )
-            return {
-                status: 'success',
-                message: "Đăng nhập thành công",
-                data: tokens,
-            }
-        } catch ( error ) {
-            throw throwCatch( error )
-        }
-    }
-
-    async validateToken( token: string ): Promise<BaseResponse> {
-
-        try {
-            const cacheKey = `validated_token:${ token }`;
-            const isBlacklisted = await this.cacheManager.get( `blacklist:${ token }` );
-            if ( isBlacklisted ) {
-                throw {
-                    status: "error",
-                    error: {
-                        message: "Tài khoản người dùng đã bị cấm",
-                    }
-                } as BaseResponse;
-            }
-
-            const cachedValidation = await this.cacheManager.get( cacheKey );
-
-            if ( cachedValidation ) {
-                return {
-                    status: 'success',
-                    message: "Xác thực thành công",
-                }
-            }
-
-            const decoded = jwt.verify( token, process.env.JWT_SECRET || "huynhnhatvuong1" ) as TokenPayloadDto;
-
-            const user = await this.kafkaService.getUserById( decoded.userId );
-
-            if ( !user ) {
-                throw {
-                    status: "error",
-                    error: {
-                        message: "Tài khoản người dùng không còn tồn tại",
-                    }
-                } as BaseResponse;
-
-            }
-            const data = { userId: decoded.userId, email: decoded.email };
-            await this.cacheManager.set( cacheKey, { userId: decoded.userId, email: decoded.email }, CONSTANTS.CACHE_EXPRIES[ '30m' ] );
-            return {
-                status: 'success',
-                data
-            };
-
-        } catch ( error ) {
-            throw throwCatch( error );
-        }
-    }
-
-    async validateGoogleUser( profile: any ) {
-        const { email, name } = profile;
-        let result = await this.kafkaService.findByEmail( email );
-
-
-        if ( !result?.data ) {
-            const randomPassword = Math.random().toString( 36 ).slice( -8 );
-            const salt = await bcrypt.genSalt();
-            const hashedPassword = await bcrypt.hash( randomPassword, salt );
-            const accountInforUser = {
-                email, name, password: hashedPassword, provider: 'google', providerId: profile.id
-            }
-            result = await this.kafkaService.createUser( accountInforUser )
-        }
-
-        const { password: _, ...response } = result.data;
-        return response;
-    }
-
-
-    async googleLogin( req ) {
-
-        if ( !req ) {
-            throw new UnauthorizedException( 'Không thể xác thực với Google' );
-        }
-
-
-        return this.login( req );
     }
 
     private generateTokens( user: any ) {

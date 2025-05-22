@@ -9,6 +9,7 @@ import { Cache } from "cache-manager";
 import { JwtService } from "@nestjs/jwt";
 import { JwtStrategy } from "../passport/jwt.strategy";
 import type { BaseResponse } from "@app/common";
+import { throwCatchHtpp } from "@app/common/utils/http-throw-catch";
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard( 'jwt' ) {
@@ -59,13 +60,15 @@ export class JwtAuthGuard extends AuthGuard( 'jwt' ) {
                 throw new UnauthorizedException( 'Invalid token' );
             }
 
-            // request.user = user;
-            await this.jwtStrategy.validate( result.data );
+
+            const userInfor = await this.jwtStrategy.validate( result.data );
+
+            request.user = userInfor;
 
             return true;
 
         } catch ( error ) {
-            throw new HttpException( error as BaseResponse, HttpStatus.UNAUTHORIZED )
+            throw throwCatchHtpp( error )
         }
     }
 }   

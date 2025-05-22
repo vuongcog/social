@@ -1,8 +1,11 @@
-// auth-service/src/kafka/kafka.service.ts
 import { CONSTANTS, type BaseResponse } from '@app/common';
 import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-breaker.service';
+import { CLIENT_ID } from '@app/common/constants/client-id';
 import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
+import { SERVER_NAME } from '@app/common/constants/server';
+import { handlerResponseBreaker } from '@app/common/utils/handle-response-breaker';
 import { throwCatch } from '@app/common/utils/throw-catch';
+import { throwCatchGateWay } from '@app/common/utils/throw-catch-gateway';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom, timeout, catchError, of } from 'rxjs';
@@ -58,48 +61,30 @@ export class KafkaService implements OnModuleInit {
 
     async findByEmail( data: string ): Promise<BaseResponse> {
         try {
-            const result = await this.userServiceBreaker.fire( {
+            const result: BaseResponse = await this.userServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.USER_FIND_BY_EMAIL,
                 payload: data
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-
-            return result;
+            return handlerResponseBreaker( result )
 
         } catch ( error: BaseResponse | any ) {
-            throw throwCatch( error );
-
-
+            throw throwCatchGateWay( error, CLIENT_ID.AUTH_CLIENT_ID, SERVER_NAME.USER_SERVER );
         }
     }
 
-    async getUserById( id: string ) {
+    async getUserById( id: string ): Promise<BaseResponse> {
         try {
-            return await this.userServiceBreaker.fire( {
+            const result: BaseResponse = await this.userServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.USER_GET,
                 payload: {
                     id
                 },
             } );
-        } catch ( error: BaseResponse | any ) {
-            if ( error.status ) {
-                throw error as BaseResponse
-            }
-            else {
-                throw {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            return handlerResponseBreaker( result )
 
+        } catch ( error: BaseResponse | any ) {
+            throw throwCatchGateWay( error, CLIENT_ID.AUTH_CLIENT_ID, SERVER_NAME.USER_SERVER );
         }
     }
 
@@ -108,23 +93,14 @@ export class KafkaService implements OnModuleInit {
     async createUser( userData: any ): Promise<BaseResponse> {
 
         try {
-            return await this.userServiceBreaker.fire( {
+            const result: BaseResponse = await this.userServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.USER_CREATED,
                 payload: userData
             } );
-
+            return handlerResponseBreaker( result )
         } catch ( error: BaseResponse | any ) {
-            if ( error.status ) {
-                throw error as BaseResponse
-            }
-            else {
-                throw {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            throw throwCatchGateWay( error, CLIENT_ID.AUTH_CLIENT_ID, SERVER_NAME.USER_SERVER );
+
 
         }
 
@@ -137,7 +113,7 @@ export class KafkaService implements OnModuleInit {
                     timeout( 1000 ),
                     catchError( err => {
                         console.error( 'Error pinging Kafka:', err );
-                        return of( false ); // ✅ trả về Observable<boolean>
+                        return of( false );
                     } )
                 )
             );

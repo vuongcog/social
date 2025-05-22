@@ -1,40 +1,30 @@
-import { Controller, Post, Body, HttpException, HttpStatus, UseGuards, Get, Req, Res, Request, Put, Param } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, UseGuards, Get, Req, Res } from '@nestjs/common';
 import { KafkaService } from '../kafka/kafka.service';
 import type { LoginDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { Public } from './public.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { BaseResponse } from '@app/common';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
+import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
+import { responseData } from '@app/common/utils/response';
 
 @Controller( 'auth' )
 export class AuthController {
 
     constructor( private readonly kafkaService: KafkaService ) { }
 
+
     @Public()
     @Post( 'register' )
-    async register( @Body() registerDto: RegisterDto ) {
+    async register( @Body() registerDto: RegisterDto, @Res() res: ExpressResponse ) {
         try {
-            const result = await this.kafkaService.register( registerDto );
+            const result: BaseResponse = await this.kafkaService.register( registerDto );
 
-            if ( result.status === "error" ) {
-                throw result;
-            }
-            return result
+            return responseData( res, result );
 
         } catch ( error ) {
-            if ( error.status ) {
-                throw new HttpException( error as BaseResponse, HttpStatus.BAD_REQUEST,
-                )
-            }
-            else {
-                throw new HttpException( {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse, HttpStatus.BAD_REQUEST )
-            }
+            throw throwCatchHtpp( error )
         }
     }
 
@@ -42,26 +32,22 @@ export class AuthController {
     @Public()
     @UseGuards( LocalAuthGuard )
     @Post( 'login' )
-    async login( @Body() loginDto: LoginDto, @Request() req ) {
+    async login(
+        @Req() req: ExpressRequest,
+        @Res() res: ExpressResponse
+    ) {
         try {
 
-            const result = await this.kafkaService.login( req.user.data );
+            const userInfor: LoginDto = {
+                email: req?.user?.data?.email,
+                id: req?.user?.data?.id,
+            }
+            const result = await this.kafkaService.login( userInfor );
 
-            return result
+            return responseData( res, result );
 
         } catch ( error ) {
-            if ( error.status ) {
-                throw new HttpException( error as BaseResponse, HttpStatus.BAD_REQUEST,
-                )
-            }
-            else {
-                throw new HttpException( {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse, HttpStatus.BAD_REQUEST )
-            }
+            throw throwCatchHtpp( error )
         }
     }
 
@@ -88,17 +74,16 @@ export class AuthController {
     @Public()
     @UseGuards( GoogleAuthGuard )
     @Get( 'google/callback' )
-    async googleAuthRedirect( @Req() req, @Res() res ) {
+    async googleAuthRedirect( @Req() req: ExpressRequest, @Res() res: ExpressResponse ) {
 
         try {
-            const result = await this.kafkaService.googleLogin( req.user );
-            res.redirect( `/auth/success?token=${ result.accessToken }` );
+            const result = await this.kafkaService.googleLogin( req?.user );
+            res.redirect( `/auth/success?token=${ result?.data?.accessToken }` );
 
         } catch ( error ) {
-            throw new HttpException(
-                error.message || 'Google Login failed',
-                HttpStatus.UNAUTHORIZED,
-            );
+
+            throw throwCatchHtpp( error )
+
         }
     }
 

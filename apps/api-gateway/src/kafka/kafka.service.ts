@@ -1,3 +1,4 @@
+import { SERVER_NAME } from './../../../../libs/common/src/constants/server';
 import { console } from 'node:inspector/promises';
 import { BaseResponse } from './../../../../libs/common/src/interfaces/response.interface';
 import { CONSTANTS } from '@app/common';
@@ -8,6 +9,10 @@ import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom, timeout, catchError, type async } from 'rxjs';
 import { throwCatch } from '@app/common/utils/throw-catch';
 import type { UpdateDto } from '@app/common/dto/user.dto';
+import type { LoginDto } from '@app/common/dto/auth.dto';
+import { throwCatchGateWay } from '@app/common/utils/throw-catch-gateway';
+import { handlerResponseBreaker } from '@app/common/utils/handle-response-breaker';
+import { Public } from '../auth/public.decorator';
 @Injectable()
 export class KafkaService implements OnModuleInit {
     private authServiceBreaker: any;
@@ -28,19 +33,19 @@ export class KafkaService implements OnModuleInit {
         private circuitBreakerService: CircuitBreakerService,
     ) {
         this.authServiceBreaker = this.circuitBreakerService.create(
-            CONSTANTS.CLIENT_ID.AUTH_CLIENT_ID,
+            CONSTANTS.SERVER_NAME.AUTH_SERVER,
             this.callAuthService.bind( this ),
             { timeout: 5000 }
         );
 
         this.userServiceBreaker = this.circuitBreakerService.create(
-            CONSTANTS.CLIENT_ID.USER_CLIENT_ID,
+            CONSTANTS.SERVER_NAME.USER_SERVER,
             this.callUserService.bind( this ),
             { timeout: 5000 }
         );
 
         this.elasticServiceBreaker = this.circuitBreakerService.create(
-            CONSTANTS.CLIENT_ID.ELASTICSEARCH_CLIENT_ID,
+            CONSTANTS.SERVER_NAME.ELASTICSEARCH_SERVER,
             this.callElasticSearchService.bind( this ),
             { timeout: 5000 }
         );
@@ -120,86 +125,74 @@ export class KafkaService implements OnModuleInit {
                 payload: userData,
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-            return result;
+            return handlerResponseBreaker( result );
 
         } catch ( error ) {
-            throw throwCatch( error );
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID, CONSTANTS.SERVER_NAME.AUTH_SERVER );
         }
     }
 
 
-    async login( credentials: any ) {
+    async login( credentials: LoginDto ) {
         try {
             const result: BaseResponse = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_LOGIN,
                 payload: credentials,
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-            return result;
+            return handlerResponseBreaker( result );
 
         } catch ( error ) {
-            throw throwCatch( error );
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID, CONSTANTS.SERVER_NAME.AUTH_SERVER );
         }
     }
 
     async googleLogin( userData: any ) {
         try {
 
-            return await this.authServiceBreaker.fire( {
+            const result = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_GOOGLE_LOGIN,
                 payload: userData,
             } );
 
+            return handlerResponseBreaker( result );
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'Authentication service is currently unavailable' );
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID, CONSTANTS.SERVER_NAME.AUTH_SERVER );
+
         }
     }
 
-    async validateUser( email, password ) {
+    async validateUser( email, password ): Promise<BaseResponse<LoginDto>> {
         try {
-            const result: BaseResponse = await this.authServiceBreaker.fire( {
+            const result: BaseResponse<LoginDto> = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_VALIDATE_USER,
                 payload: {
                     email, password
                 },
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-            return result;
+            return handlerResponseBreaker( result );
+
 
         } catch ( error ) {
-            throw throwCatch( error );
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID, CONSTANTS.SERVER_NAME.AUTH_SERVER );
         }
     }
 
-    async validateGoogleUser( userData: any ) {
+    async validateGoogleUser( userData: any ): Promise<BaseResponse> {
         try {
-            return await this.authServiceBreaker.fire( {
+            const result = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.AUTH_VALIDATE_GOOLE,
                 payload: userData,
             } );
 
+            return handlerResponseBreaker( result );
+
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'Authentication service is currently unavailable' );
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_AUTH_CLIENT_ID, CONSTANTS.SERVER_NAME.AUTH_SERVER );
+
         }
     }
 
@@ -213,13 +206,8 @@ export class KafkaService implements OnModuleInit {
                 },
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-            return result;
+            return handlerResponseBreaker( result );
+
 
         } catch ( error ) {
             throw throwCatch( error );
@@ -228,13 +216,17 @@ export class KafkaService implements OnModuleInit {
 
     async getUserById( id: string ) {
         try {
-            return await this.userServiceBreaker.fire( {
+            const result = await this.userServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.USER_GET,
                 payload: { id },
             } );
+
+            return handlerResponseBreaker( result );
+
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'User service is currently unavailable' );
+
+            throw throwCatch( error );
+
         }
     }
 
@@ -249,13 +241,8 @@ export class KafkaService implements OnModuleInit {
                 },
             } );
 
-            if ( result?.error ) {
-                if ( result.error.break ) {
-                    throw result
-                }
-                return Promise.reject( result )
-            }
-            return result;
+            return handlerResponseBreaker( result );
+
 
         } catch ( error ) {
             throw throwCatch( error );

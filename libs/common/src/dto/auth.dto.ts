@@ -30,9 +30,16 @@ export class LoginDto {
     email: string;
 
     @IsNotEmpty()
-    password: string;
+    id: string;
 }
+export class UserLoginInfo {
+    @IsEmail()
+    email: string;
 
+    @IsNotEmpty()
+    password: string;
+
+}
 export class TokenPayloadDto {
     userId: string;
     email: string;

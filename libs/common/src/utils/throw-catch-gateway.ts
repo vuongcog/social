@@ -2,7 +2,7 @@ import { HttpStatus } from "@nestjs/common";
 import type { BaseResponse } from "../interfaces";
 import { CONSTANTS } from "../constants";
 
-export function throwCatch( error ): BaseResponse {
+export function throwCatchGateWay( error, gatewayService, serverService ): BaseResponse {
 
     console.error( "Error details:", error );
 
@@ -11,9 +11,9 @@ export function throwCatch( error ): BaseResponse {
     }
     else {
         return {
-            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            statusCode: HttpStatus.BAD_GATEWAY,
             status: 'error',
-            message: 'Internal server error occurred',
+            message: `${ gatewayService } is not connection ${ serverService }`,
             error: {
                 details: error,
             }

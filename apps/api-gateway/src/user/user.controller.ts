@@ -1,10 +1,10 @@
-// api-gateway/src/user/user.controller.ts
-import { Controller, Get, Put, Delete, Param, Body, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { BaseResponse } from './../../../../libs/common/src/interfaces/response.interface';
+import { Controller, Get, Put, Delete, Param, Body, UseGuards, Request, HttpException, HttpStatus, Res } from '@nestjs/common';
 import { KafkaService } from '../kafka/kafka.service';
-import { AuthGuard } from '../auth/auth.guard';
-import { Public } from '../auth/public.decorator';
 import type { UpdateDto } from '@app/common/dto/user.dto';
-import type { BaseResponse } from '@app/common';
+import { responseData } from '@app/common/utils/response';
+import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
+import { Public } from '../auth/public.decorator';
 
 @Controller( 'users' )
 // @UseGuards( AuthGuard )
@@ -12,62 +12,40 @@ export class UserController {
     constructor( private readonly kafkaService: KafkaService ) { }
 
     @Get( 'me' )
-    async getProfile( @Request() req ) {
+    async getProfile( @Request() req, @Res() res ) {
         try {
-            const user = await this.kafkaService.getUserById( req.user.userId );
-            if ( !user ) {
-                throw new HttpException( 'User not found', HttpStatus.NOT_FOUND );
-            }
-            return user;
+            const result: BaseResponse = await this.kafkaService.getUserById( req.user.id );
+            return responseData( res, result );
+
         } catch ( error ) {
-            throw new HttpException(
-                error.message || 'Failed to fetch user profile',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
+            throw throwCatchHtpp( res )
         }
     }
 
+    @Public()
     @Get( ':id' )
-    async getUserById( @Param( 'id' ) id: string ) {
+    async getUserById( @Param( 'id' ) id: string, @Res() res ) {
         try {
-            const user = await this.kafkaService.getUserById( id );
-            if ( !user ) {
-                throw new HttpException( 'User not found', HttpStatus.NOT_FOUND );
-            }
-            return user;
+            const result: BaseResponse = await this.kafkaService.getUserById( id );
+            return responseData( res, result );
+
         } catch ( error ) {
-            throw new HttpException(
-                error.message || 'Failed to fetch user',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
+            throw throwCatchHtpp( res )
         }
     }
 
 
     @Put( ':id' )
-    async update( @Body() updateDto: UpdateDto, @Param( 'id' ) id: string, @Request() req ) {
+    async update( @Body() updateDto: UpdateDto, @Param( 'id' ) id: string, @Request() req, @Res() res ) {
         try {
 
-            const result = await this.kafkaService.updateUser( id, updateDto );
+            const result: BaseResponse = await this.kafkaService.updateUser( id, updateDto );
 
-            if ( result.status === "error" ) {
-                throw result;
-            }
-            return result
+            return responseData( res, result );
 
         } catch ( error ) {
-            if ( error.status ) {
-                throw new HttpException( error as BaseResponse, HttpStatus.BAD_REQUEST,
-                )
-            }
-            else {
-                throw new HttpException( {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse, HttpStatus.BAD_REQUEST )
-            }
+            throw throwCatchHtpp( error )
+
         }
     }
 

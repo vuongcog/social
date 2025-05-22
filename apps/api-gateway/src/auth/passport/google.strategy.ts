@@ -3,6 +3,8 @@ import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KafkaService } from '../../kafka/kafka.service';
+import type { BaseResponse } from '@app/common';
+import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy( Strategy, 'google' ) {
@@ -31,8 +33,14 @@ export class GoogleStrategy extends PassportStrategy( Strategy, 'google' ) {
             name: name.givenName + ' ' + name.familyName,
             id: profile.id,
         }
-        const user = await this.kafkaService.validateGoogleUser( inforUser );
+        try {
 
-        done( null, user );
+            const result: BaseResponse = await this.kafkaService.validateGoogleUser( inforUser );
+            done( null, result.data );
+
+        } catch ( error ) {
+            throw throwCatchHtpp( error )
+        }
+
     }
 }

@@ -5,15 +5,16 @@ import { Strategy } from 'passport-local';
 import { KafkaService } from "../../kafka/kafka.service";
 import { throwCatch } from '@app/common/utils/throw-catch';
 import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
+import type { LoginDto } from '@app/common/dto/auth.dto';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy( Strategy ) {
     constructor( private kafkaService: KafkaService ) {
         super( { usernameField: 'email' } );
     }
-    async validate( email: string, password ): Promise<BaseResponse> {
+    async validate( email: string, password ): Promise<BaseResponse<LoginDto>> {
         try {
-            const result: BaseResponse = await this.kafkaService.validateUser( email, password );
+            const result: BaseResponse<LoginDto> = await this.kafkaService.validateUser( email, password );
 
             return result;
 

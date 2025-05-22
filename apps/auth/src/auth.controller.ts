@@ -5,6 +5,7 @@ import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
 import type { LoginDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { CONSTANTS, type BaseResponse } from '@app/common';
 import { Public } from '../../api-gateway/src/auth/public.decorator';
+import { throwCatch } from '@app/common/utils/throw-catch';
 
 @Controller()
 export class AuthController {
@@ -17,21 +18,10 @@ export class AuthController {
             return result
 
         } catch ( error ) {
-            if ( error.status ) {
-                return error as BaseResponse
-            }
-            else {
-                return {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            return throwCatch( error )
+
         }
     }
-
-
 
 
     @MessagePattern( KAFKA_TOPICS.AUTH_LOGIN )
@@ -41,17 +31,7 @@ export class AuthController {
             return result
 
         } catch ( error ) {
-            if ( error.status ) {
-                return error as BaseResponse
-            }
-            else {
-                return {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            return throwCatch( error )
         }
     }
 
@@ -64,17 +44,8 @@ export class AuthController {
             return result
 
         } catch ( error ) {
-            if ( error.status ) {
-                return error as BaseResponse
-            }
-            else {
-                return {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            return throwCatch( error )
+
         }
     }
 
@@ -86,36 +57,41 @@ export class AuthController {
 
     @MessagePattern( CONSTANTS.KAFKA_TOPICS.AUTH_VALIDATE_GOOLE )
     async validateGoogle( @Payload() payload: any ) {
-        return this.authService.validateGoogleUser( payload )
+
+        try {
+            const result: BaseResponse = await this.authService.validateGoogleUser( payload );
+            return result
+
+        } catch ( error ) {
+            return throwCatch( error )
+
+        }
 
     }
 
     @MessagePattern( KAFKA_TOPICS.AUTH_GOOGLE_LOGIN )
     async googleLogin( @Payload() userData: any ) {
-        const a = 1;
-        return this.authService.googleLogin( userData );
+        try {
+            const result: BaseResponse = await this.authService.googleLogin( userData );
+            return result
+
+        } catch ( error ) {
+            return throwCatch( error )
+
+        }
 
     }
 
     @MessagePattern( CONSTANTS.KAFKA_TOPICS.AUTH_VALIDATE_USER )
-    async validateUser( @Payload() payload: any ): Promise<BaseResponse> {
+    async validateUser( @Payload() payload: any ): Promise<BaseResponse<LoginDto>> {
 
         try {
-            const result = await this.authService.validateUser( payload.email, payload.password )
+            const result: BaseResponse<LoginDto> = await this.authService.validateUser( payload.email, payload.password )
             return result
 
         } catch ( error ) {
-            if ( error.status ) {
-                return error as BaseResponse
-            }
-            else {
-                return {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            return throwCatch( error )
+
         }
     }
 

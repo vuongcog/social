@@ -1,5 +1,5 @@
 import { console } from 'node:inspector/promises';
-import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, HttpStatus } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
@@ -29,6 +29,7 @@ export class UserService {
 
             if ( exitUser ) {
                 throw ( {
+                    statusCode: HttpStatus.CONFLICT,
                     status: "error",
                     error: {
                         primaryMessage: `Email ${ data.email } is exited in database `
@@ -48,6 +49,7 @@ export class UserService {
             // }
 
             return {
+                statusCode: HttpStatus.CREATED,
                 status: "success",
                 message: `Created User by Email ${ user.email }`,
                 data: user,
@@ -55,17 +57,7 @@ export class UserService {
         }
 
         catch ( error: BaseResponse | any ) {
-            if ( error.status ) {
-                throw error as BaseResponse
-            }
-            else {
-                throw {
-                    status: 'error',
-                    error: {
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            throw throwCatch( error )
 
         }
 
@@ -75,6 +67,7 @@ export class UserService {
         try {
             if ( !id ) {
                 throw {
+                    statusCode: HttpStatus.BAD_REQUEST,
                     status: "error",
                     error: {
                         message: "User Id is undefind",
@@ -88,6 +81,7 @@ export class UserService {
                 throw {
                     ...userExited,
                     status: "error",
+                    statusCode: HttpStatus.CONFLICT,
                 } as BaseResponse
             }
 
@@ -103,6 +97,7 @@ export class UserService {
                 await this.cacheManager.del( `user:email:${ user.email }` );
             }
             return {
+                statusCode: HttpStatus.CREATED,
                 status: "success",
                 message: `Updated user ${ id }`,
                 data: user,
@@ -113,25 +108,6 @@ export class UserService {
         }
     }
 
-    async deleteUser( id: string ): Promise<User> {
-        const user = await this.prisma.user.findUnique( {
-            where: { id },
-        } );
-
-        if ( !user ) {
-            throw new NotFoundException( `User with ID ${ id } not found` );
-        }
-
-        await this.prisma.user.delete( {
-            where: { id },
-        } );
-
-        await this.cacheManager.del( `user:${ id }` );
-        await this.cacheManager.del( `user:email:${ user.email }` );
-        await this.userElasticSearchKafkaClient.emitUserDeleted( id );
-
-        return user;
-    }
 
 
     async findUserById( id: string ): Promise<BaseResponse> {
@@ -139,9 +115,10 @@ export class UserService {
         try {
             if ( !id ) {
                 throw {
+                    statusCode: HttpStatus.BAD_REQUEST,
                     status: "error",
                     error: {
-                        message: "Field id is undifine",
+                        message: "Field id is undefine",
                     },
                 }
             }
@@ -151,6 +128,7 @@ export class UserService {
 
             if ( cachedUser ) {
                 return {
+                    statusCode: HttpStatus.CREATED,
                     status: "success",
                     data: cachedUser,
                     message: `Has user ${ id } in cache`
@@ -165,12 +143,14 @@ export class UserService {
             if ( user ) {
                 await this.cacheManager.set( cacheKey, user, 600000 );
                 return {
+                    statusCode: HttpStatus.OK,
                     status: "success",
                     message: `Has user ${ id } in database`,
                     data: user,
                 };
             }
             return {
+                statusCode: HttpStatus.NOT_FOUND,
                 status: "success",
                 message: `Not found user ${ id } `
             }
@@ -189,6 +169,7 @@ export class UserService {
 
             if ( cachedUser ) {
                 return {
+                    statusCode: HttpStatus.OK,
                     status: 'success',
                     message: `Have User with Email ${ email } in cache `,
                     data: cachedUser
@@ -201,6 +182,7 @@ export class UserService {
 
             if ( !user ) {
                 return {
+                    statusCode: HttpStatus.OK,
                     status: 'success',
                     message: `User not found email ${ email } in anywhere`,
                 };
@@ -209,6 +191,7 @@ export class UserService {
             await this.cacheManager.set( cacheKey, user, 600_000 );
 
             return {
+                statusCode: HttpStatus.CREATED,
                 status: 'success',
                 message: `Have User with Email ${ email } in database`,
                 data: user,
