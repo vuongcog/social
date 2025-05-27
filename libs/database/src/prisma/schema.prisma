@@ -23,6 +23,11 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
+  isIndexed   Boolean  @default(false)
+  indexedAt   DateTime?
+  
+  @@index([isIndexed]) 
+
   Role Role[] @relation("UserRoles")
 }
 

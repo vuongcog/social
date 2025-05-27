@@ -1,58 +1,49 @@
-import { console } from 'node:inspector/promises';
-import { Injectable, Inject, NotFoundException, ConflictException, HttpStatus } from '@nestjs/common';
+import { Injectable, Inject, HttpStatus } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import * as bcrypt from 'bcrypt';
 import { PrismaService, } from '@app/database';
 import { User } from '@app/database/generated/prisma';
-import { KafkaService } from './kafka/kafka.service';
-import chalk from 'chalk';
+import { UserElasticSearchKafkaService } from './kafka/elasticsearch/user.elasticsearch-kafka.service';
 import { printInformation } from '@app/common/utils/print-information';
-import { CONSTANTS, type BaseResponse } from '@app/common';
+import { type BaseResponse } from '@app/common';
 import { throwCatch } from '@app/common/utils/throw-catch';
 import type { UpdateDto } from '@app/common/dto/user.dto';
+import { UserDataKafkaService } from './kafka/user/user.data-kafka.service';
+import type { RegisterDto } from '@app/common/dto/auth.dto';
+import { CACHE_EXPRIES } from '@app/common/constants/catch-expries';
 
 @Injectable()
 export class UserService {
     constructor(
         private readonly prisma: PrismaService,
         @Inject( CACHE_MANAGER ) private cacheManager: Cache,
-        private readonly userElasticSearchKafkaClient: KafkaService,
+        private readonly userElasticSearchKafkaClient: UserElasticSearchKafkaService,
+        private readonly userDataKafkaClient: UserDataKafkaService,
+
     ) { }
 
-    async createUser( data: any ): Promise<BaseResponse> {
+    async createUser( data: RegisterDto ): Promise<BaseResponse> {
 
         try {
-            const exitUser = await this.prisma.user.findUnique( {
-                where: { email: data.email }
-            } );
 
-            if ( exitUser ) {
-                throw ( {
-                    statusCode: HttpStatus.CONFLICT,
-                    status: "error",
-                    error: {
-                        primaryMessage: `Email ${ data.email } is exited in database `
-                    }
-                } ) as BaseResponse;
+            const result: BaseResponse = await this.userDataKafkaClient.createUser( data )
+
+            printInformation( result.data )
+
+            const indexDocument = await this.userElasticSearchKafkaClient.emitUserCreated( result.data );
+
+            const updateData: UpdateDto = {
+                isIndexed: true,
             }
 
-            const user = await this.prisma.user.create( {
-                data,
-            } );
-            printInformation( user )
-
-            // const indexDocument = await this.userElasticSearchKafkaClient.emitUserCreated( user );
-
-            // if ( indexDocument ) {
-            //     throw new ConflictException( 'not index to user' );
-            // }
+            const resultData: BaseResponse = await this.userDataKafkaClient.updateUser( result.data.id, updateData )
 
             return {
                 statusCode: HttpStatus.CREATED,
                 status: "success",
-                message: `Created User by Email ${ user.email }`,
-                data: user,
+                message: `Created User by Email ${ result.data.email }`,
+                messages: [ ...( indexDocument.messages ? indexDocument.messages : [] ) ],
+                data: resultData.data,
             };
         }
 
@@ -63,44 +54,26 @@ export class UserService {
 
     }
 
-    async updateUser( id: string, data: Partial<UpdateDto> ): Promise<BaseResponse> {
+    async updateUser( id: string, data: UpdateDto ): Promise<BaseResponse> {
         try {
-            if ( !id ) {
-                throw {
-                    statusCode: HttpStatus.BAD_REQUEST,
-                    status: "error",
-                    error: {
-                        message: "User Id is undefind",
-                    }
-                } as BaseResponse
-            }
 
-            const userExited: BaseResponse = await this.findUserById( id )
-
-            if ( !userExited?.data ) {
-                throw {
-                    ...userExited,
-                    status: "error",
-                    statusCode: HttpStatus.CONFLICT,
-                } as BaseResponse
-            }
-
-            const user = await this.prisma.user.update( {
-                where: { id },
-                data,
-            } );
+            const result = await this.userDataKafkaClient.updateUser( id, data )
 
             const cacheKey = `user:${ id }`;
-            await this.cacheManager.set( cacheKey, user, 600000 );
+            await this.cacheManager.set( cacheKey, result.data, CACHE_EXPRIES.id );
 
             if ( data.email ) {
-                await this.cacheManager.del( `user:email:${ user.email }` );
+                await this.cacheManager.del( `user:email:${ result.data.email }` );
             }
+            const indexDocument = await this.userElasticSearchKafkaClient.emitUserCreated( result.data );
+
             return {
                 statusCode: HttpStatus.CREATED,
                 status: "success",
                 message: `Updated user ${ id }`,
-                data: user,
+                messages: [ ...( indexDocument.messages ? indexDocument.messages : [] ) ],
+
+                data: result.data,
             }
 
         } catch ( error ) {
@@ -111,7 +84,6 @@ export class UserService {
 
 
     async findUserById( id: string ): Promise<BaseResponse> {
-
         try {
             if ( !id ) {
                 throw {
@@ -136,24 +108,15 @@ export class UserService {
                 };
             }
 
-            const user = await this.prisma.user.findUnique( {
-                where: { id },
-            } );
 
-            if ( user ) {
-                await this.cacheManager.set( cacheKey, user, 600000 );
-                return {
-                    statusCode: HttpStatus.OK,
-                    status: "success",
-                    message: `Has user ${ id } in database`,
-                    data: user,
-                };
+            const result = await this.userDataKafkaClient.findUserById( id );
+
+            if ( result.data ) {
+                await this.cacheManager.set( cacheKey, result.data, CACHE_EXPRIES.id );
+                return result;
             }
-            return {
-                statusCode: HttpStatus.NOT_FOUND,
-                status: "success",
-                message: `Not found user ${ id } `
-            }
+
+            return result;
 
 
         } catch ( error ) {
@@ -162,7 +125,7 @@ export class UserService {
 
     }
 
-    async findUserByEmail( email: string ): Promise<BaseResponse<User>> {
+    async findUserByEmail( email: string ): Promise<BaseResponse> {
         try {
             const cacheKey = `user:email:${ email }`;
             const cachedUser = await this.cacheManager.get<User>( cacheKey );
@@ -176,40 +139,21 @@ export class UserService {
                 };
             }
 
-            const user = await this.prisma.user.findUnique( {
-                where: { email },
-            } );
 
-            if ( !user ) {
-                return {
-                    statusCode: HttpStatus.OK,
-                    status: 'success',
-                    message: `User not found email ${ email } in anywhere`,
-                };
+
+            const result = await this.userDataKafkaClient.findUserByEmail( email )
+
+            if ( !result?.data ) {
+                return result
             }
 
-            await this.cacheManager.set( cacheKey, user, 600_000 );
+            await this.cacheManager.set( cacheKey, result.data, CACHE_EXPRIES.email );
 
-            return {
-                statusCode: HttpStatus.CREATED,
-                status: 'success',
-                message: `Have User with Email ${ email } in database`,
-                data: user,
-            };
+            return result
 
         } catch ( error: BaseResponse | any ) {
-            if ( error.status ) {
-                throw error as BaseResponse
-            }
-            else {
-                throw {
-                    status: 'error',
-                    error: {
-                        break: true,
-                        details: error,
-                    }
-                } as BaseResponse;
-            }
+            throw throwCatch( error );
+
 
         }
     }

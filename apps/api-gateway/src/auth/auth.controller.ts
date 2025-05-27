@@ -1,5 +1,4 @@
 import { Controller, Post, Body, HttpException, HttpStatus, UseGuards, Get, Req, Res } from '@nestjs/common';
-import { KafkaService } from '../kafka/kafka.service';
 import type { LoginDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { Public } from './public.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -8,11 +7,12 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
 import { responseData } from '@app/common/utils/response';
+import { AuthKafkaService } from '../kafka/auth/gateway.auth-kafka.service';
 
 @Controller( 'auth' )
 export class AuthController {
 
-    constructor( private readonly kafkaService: KafkaService ) { }
+    constructor( private readonly kafkaService: AuthKafkaService ) { }
 
 
     @Public()

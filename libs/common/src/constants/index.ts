@@ -6,6 +6,8 @@ import * as CODE from './response-code'
 import { CACHE_EXPRIES } from "./catch-expries";
 import { SERVER_NAME } from "./server";
 import { STATUS_VALUES } from "./status";
+import { SERVER_ID } from "./server-id";
+import { TIME_OUT } from "./timeout";
 export const CONSTANTS = {
     CLIENT_ID,
     GROUP_ID,
@@ -15,4 +17,6 @@ export const CONSTANTS = {
     CACHE_EXPRIES,
     SERVER_NAME,
     STATUS_VALUES,
+    SERVER_ID,
+    TIME_OUT,
 }

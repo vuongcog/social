@@ -1,17 +1,26 @@
+import { ElasticSearchDataKafkaService } from './kafka/data/elasticsearch.data-kafka.service';
+import { HttpStatus } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { userMapping } from './mappings/user.maping';
 import { ConfigService } from '@nestjs/config';
 import { Record } from '@prisma/client/runtime/library';
+import { throwCatch } from '@app/common/utils/throw-catch';
+import type { BaseResponse } from '@app/common';
+import type { SearchPaginationDto } from '@app/common/dto/search.dto';
 
 @Injectable()
 export class MyElasticSearchService {
+
   private readonly logger = new Logger( MyElasticSearchService.name );
   private readonly indices = {
     users: 'users',
   }
 
-  constructor( private readonly esService: ElasticsearchService, private readonly configService: ConfigService ) {
+  constructor( private readonly esService: ElasticsearchService, private readonly configService: ConfigService,
+    private readonly elasticsearchDataKafkaClient: ElasticSearchDataKafkaService,
+
+  ) {
 
   }
 
@@ -39,8 +48,127 @@ export class MyElasticSearchService {
     }
   }
 
-  async updateMapping( index: string, mapping: Record<string, any> ) {
 
+
+  async deleteAllDocsInIndex( indexName: string = "users" ): Promise<BaseResponse> {
+    try {
+      const response = await this.esService.deleteByQuery( {
+        index: indexName,
+        body: {
+          query: {
+            match_all: {}
+          }
+        },
+        refresh: true
+      } );
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.OK,
+        data: response.total
+      }
+    } catch ( error ) {
+      throw throwCatch( error )
+    }
+  }
+
+  async markExistingRecordsAsIndexed(): Promise<BaseResponse> {
+
+    try {
+      const esResponse = await this.esService.search( {
+        index: 'users',
+        body: {
+          query: { match_all: {} },
+          _source: false,
+          size: 10000
+        }
+      } );
+
+      const indexedIds = esResponse.hits.hits
+        .filter( hit => hit._id !== undefined )
+        .map( hit => hit._id! );
+
+      const options = {
+        where: {
+          id: { in: indexedIds },
+        },
+        data: {
+          isIndexed: true,
+          indexedAt: new Date(),
+        },
+      }
+      const result = await this.elasticsearchDataKafkaClient.updateUnIndexedEntities( options );
+      return result;
+    } catch ( error ) {
+      throw throwCatch( error )
+    }
+  }
+
+
+  async indexRecordsAndMarkAsIndexed(): Promise<BaseResponse> {
+    try {
+      const unindexedRecords = await this.elasticsearchDataKafkaClient.getUnindexedRecords();
+      if ( unindexedRecords.data.length === 0 ) {
+
+        return {
+          status: 'success',
+          statusCode: HttpStatus.OK,
+          message: 'All data has been indexed previously',
+        }
+      }
+      const body = unindexedRecords.data.flatMap( record => [
+        { index: { _index: 'your-index', _id: record.id.toString() } },
+        {
+          ...record,
+          isIndexed: undefined,
+          indexedAt: undefined
+        }
+      ] );
+
+      const esResponse = await this.esService.bulk( { body } );
+
+      if ( esResponse.errors ) {
+        const erroredDocuments = esResponse.items.filter( item => item.index?.error );
+        console.error( 'Elasticsearch errors:', erroredDocuments );
+        return {
+          status: 'error',
+          statusCode: HttpStatus.OK,
+          error: {
+            messages: erroredDocuments.map( doc => {
+              const error = doc.index?.error;
+              return error
+                ? `${ error.type }: ${ error.reason }`
+                : 'Unknown error';
+            } ),
+          }
+        };
+      }
+
+      const recordIds = unindexedRecords.data.map( record => record.id );
+      const options = {
+        where: {
+          id: { in: recordIds }
+        },
+        data: {
+          isIndexed: true,
+          indexedAt: new Date()
+        }
+      }
+      const result = await this.elasticsearchDataKafkaClient.updateUnIndexedEntities( options )
+      return {
+        status: 'success',
+        statusCode: HttpStatus.CREATED,
+        message: `Successfully indexed and marked ${ unindexedRecords.data.length } records`,
+        data: result.data,
+      }
+
+    } catch ( error ) {
+      throw throwCatch( error )
+    }
+  }
+
+
+  async updateMapping( index: string, mapping: Record<string, any> ) {
     try {
       await this.esService.indices.putMapping( {
         index,
@@ -50,31 +178,76 @@ export class MyElasticSearchService {
       return { acknowacknowledgedled: true };
 
     } catch ( error ) {
-
       this.logger.error( `Failed to update mapping for index '${ index }': ${ error.message }` );
       return { acknowledged: false, error: error.message };
-
     }
-
   }
 
 
 
-  async indexDocument( index: string, id: string | undefined, body: Record<string, any> ) {
+  async indexDocument( index: string, id: string | undefined, body: Record<string, any> ): Promise<BaseResponse> {
     try {
-      await this.esService.index( {
+      if ( !index ) {
+        throw {
+          status: "error",
+          statusCode: HttpStatus.BAD_REQUEST,
+          error: {
+            message: "Index is Empty",
+          }
+        } as BaseResponse
+      }
+
+      if ( !id ) {
+        throw {
+          status: "error",
+          statusCode: HttpStatus.BAD_REQUEST,
+          error: {
+            message: "Id is Empty",
+          }
+        } as BaseResponse
+      }
+
+      const result = await this.esService.index( {
         index,
         id,
         body,
         refresh: 'wait_for',
 
       } );
-      return true;
+
+
+      if ( result.result === "updated" ) {
+        return {
+          status: 'updated',
+          statusCode: HttpStatus.OK,
+          message: 'Updated document successfully',
+          messages: [ 'Updated document successfully' ],
+
+          data: result,
+        }
+
+      }
+      else if ( result.result === "noop" ) {
+        return {
+          status: 'success',
+          statusCode: HttpStatus.OK,
+          message: 'Value is noop',
+          data: result,
+
+        }
+      }
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.CREATED,
+        message: 'Created document successfully',
+        messages: [ 'Index document successfully' ],
+
+        data: result,
+      }
+
     } catch ( error ) {
-
-      this.logger.error( `Failed to index document in '${ index }': ${ error.message }` );
-      return false;
-
+      throw throwCatch( error )
     }
   }
 
@@ -87,27 +260,73 @@ export class MyElasticSearchService {
     }
   }
 
-  async search( index: string, query: any, options: any = {} ) {
-
+  async search(
+    index: string,
+    query: any,
+    options: SearchPaginationDto = {
+      query: undefined
+    }
+  ): Promise<BaseResponse> {
     try {
-      const { size = 10, from = 0, sort, _source, highlight } = options;
+      const {
+        page = 1,
+        limit = 10,
+        sort,
+        _source,
+        highlight
+      } = options;
+
+      const currentPage = Math.max( 1, page );
+      const itemsPerPage = Math.min( Math.max( 1, limit ), 100 );
+      const from = ( currentPage - 1 ) * itemsPerPage;
+
       const searchParams: any = {
-        index, body: {
+        index,
+        body: {
           query,
-          size,
-          from
+          size: itemsPerPage,
+          from: from,
+          track_total_hits: true
         }
-      }
+      };
+
       if ( sort ) searchParams.body.sort = sort;
       if ( _source ) searchParams.body._source = _source;
-      if ( _source ) searchParams.body._source = _source;
+      if ( highlight ) searchParams.body.highlight = highlight;
 
-      return await this.esService.search( searchParams );
+      const searchResult = await this.esService.search( searchParams );
+
+      const totalItems = typeof searchResult.hits.total === 'object'
+        ? searchResult.hits.total.value
+        : searchResult.hits.total;
+
+      const totalPages = Math.ceil( totalItems! / itemsPerPage );
+      const hasNextPage = currentPage < totalPages;
+      const hasPreviousPage = currentPage > 1;
+      const to = Math.min( from + itemsPerPage, totalItems! );
+
+      return {
+        status: "success",
+        statusCode: HttpStatus.OK,
+        message: "Search completed successfully",
+        data: {
+          items: searchResult.hits.hits,
+          pagination: {
+            currentPage,
+            totalPages,
+            totalItems,
+            itemsPerPage,
+            hasNextPage,
+            hasPreviousPage,
+            from: from + 1,
+            to
+          },
+          took: searchResult.took
+        }
+      };
 
     } catch ( error ) {
-      this.logger.error( `Failed to search in '${ index }': ${ error.message }` );
-      throw error;
-
+      throw throwCatch( error );
     }
   }
 

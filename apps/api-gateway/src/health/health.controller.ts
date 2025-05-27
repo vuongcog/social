@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Res } from '@nestjs/common';
 import {
     HealthCheck,
     HealthCheckService,
@@ -13,8 +13,11 @@ export class HealthController {
         private health: HealthCheckService,
         private memory: MemoryHealthIndicator,
         private disk: DiskHealthIndicator,
-        private servicesHealth: ServicesHealthIndicator
+        private servicesHealth: ServicesHealthIndicator,
+
     ) { }
+
+
 
     @Get()
     @HealthCheck()

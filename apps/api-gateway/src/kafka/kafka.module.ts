@@ -1,9 +1,11 @@
+import { UserKafkaService } from './user/gateway.user-kafka.service';
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@app/config';
 import { CONSTANTS } from '@app/common';
-import { KafkaService } from './kafka.service';
 import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-breaker.service';
+import { AuthKafkaService } from './auth/gateway.auth-kafka.service';
+import { ElasticSearchKafkaService } from './elasticsearch/gateway.elasticsearch-kafka.service';
 @Module( {
     imports: [
         ClientsModule.registerAsync( [
@@ -45,9 +47,9 @@ import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-break
             },
         ] ),
     ],
-    providers: [ KafkaService, CircuitBreakerService ],
+    providers: [ CircuitBreakerService, AuthKafkaService, UserKafkaService, ElasticSearchKafkaService ],
 
-    exports: [ KafkaService, ClientsModule ],
+    exports: [ ClientsModule, UserKafkaService, AuthKafkaService, ElasticSearchKafkaService ],
 
 } )
 export class KafkaModule { }

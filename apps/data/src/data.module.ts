@@ -1,10 +1,10 @@
+import { DataProcessingModule } from './modules/data-processing/data-processing.module';
 import { Module } from '@nestjs/common';
-import { DataController } from './data.controller';
-import { DataService } from './data.service';
+import { ConfigModule } from '@app/config';
 
-@Module({
-  imports: [],
-  controllers: [DataController],
-  providers: [DataService],
-})
-export class DataModule {}
+@Module( {
+  imports: [ ConfigModule, DataProcessingModule ],
+  controllers: [],
+  providers: [],
+} )
+export class DataModule { }

@@ -17,11 +17,16 @@ export function throwCatchHtpp( error: BaseResponse | any ) {
     }
 
     else {
+
+        if ( 'stack' in error ) {
+            delete error.stack;
+        }
+        const details = JSON.parse( JSON.stringify( error, Object.getOwnPropertyNames( error ) ) )
         return new HttpException( {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
             status: 'error',
             error: {
-                details: error,
+                details: details
             }
         } as BaseResponse, HttpStatus.INTERNAL_SERVER_ERROR )
     }

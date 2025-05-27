@@ -6,7 +6,7 @@
  psql -U postgres -d social
 
 
- docker exec -it <container_id_or_name> bash
+ docker exec -it elasticsearch bash
  bin/elasticsearch-service-tokens create elastic/kibana kibana-token
 
 

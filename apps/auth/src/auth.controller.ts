@@ -4,7 +4,6 @@ import { AuthService } from './auth.service';
 import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
 import type { LoginDto, RegisterDto } from '@app/common/dto/auth.dto';
 import { CONSTANTS, type BaseResponse } from '@app/common';
-import { Public } from '../../api-gateway/src/auth/public.decorator';
 import { throwCatch } from '@app/common/utils/throw-catch';
 
 @Controller()

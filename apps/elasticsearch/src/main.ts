@@ -4,11 +4,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { CLIENT_ID } from '@app/common/constants/client-id';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create( AppModule )
   const configService = app.get( ConfigService )
   const broksers = configService.kafkaBrokerUrls;
+
   const microservice = app.connectMicroservice<MicroserviceOptions>(
     {
       transport: Transport.KAFKA,

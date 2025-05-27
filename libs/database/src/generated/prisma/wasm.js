@@ -129,7 +129,9 @@ exports.Prisma.UserScalarFieldEnum = {
   providerId: 'providerId',
   isActive: 'isActive',
   created_at: 'created_at',
-  updated_at: 'updated_at'
+  updated_at: 'updated_at',
+  isIndexed: 'isIndexed',
+  indexedAt: 'indexedAt'
 };
 
 exports.Prisma.RoleScalarFieldEnum = {

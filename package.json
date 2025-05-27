@@ -14,9 +14,11 @@
     "start:api-gateway-nowatch": "NODE_ENV=development nest start api-gateway",
     "start:auth": "NODE_ENV=development nest start auth --watch",
     "start:user": "NODE_ENV=development nest start user --watch",
+    "start:data": "NODE_ENV=development nest start data --watch",
     "start:user-debug": "NODE_ENV=development nest start user --debug=9229 --watch",
     "start:user-debug-nowatch": "NODE_ENV=development nest start user --debug=9229",
     "start:auth-debug": "NODE_ENV=development nest start auth --debug=9228 --watch",
+    "start:data-debug": "NODE_ENV=development nest start data --debug=9331 --watch",
     "start:auth-debug-nowatch": "NODE_ENV=development nest start auth --debug=9228",
     "start:api-gateway-debug": "NODE_ENV=development nest start api-gateway --debug=9230 --watch",
     "start:api-gateway-debug-nowatch": "NODE_ENV=development nest start api-gateway --debug=9230 ",
@@ -67,6 +69,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
+    "lodash": "^4.17.21",
     "opossum": "^8.4.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
@@ -74,6 +77,7 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },
@@ -88,6 +92,7 @@
     "@types/cache-manager": "^4.0.6",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/lodash": "^4.17.17",
     "@types/node": "^22.10.7",
     "@types/opossum": "^8.1.8",
     "@types/supertest": "^6.0.2",
@@ -131,7 +136,8 @@
     "moduleNameMapper": {
       "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
       "^@app/config(|/.*)$": "<rootDir>/libs/config/src/$1",
-      "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1"
+      "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
+      "^@app/messaging(|/.*)$": "<rootDir>/libs/messaging/src/$1"
     }
   }
 }

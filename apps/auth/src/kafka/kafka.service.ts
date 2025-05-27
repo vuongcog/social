@@ -3,8 +3,8 @@ import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-break
 import { CLIENT_ID } from '@app/common/constants/client-id';
 import { KAFKA_TOPICS } from '@app/common/constants/kafka-topics';
 import { SERVER_NAME } from '@app/common/constants/server';
+import type { RegisterDto } from '@app/common/dto/auth.dto';
 import { handlerResponseBreaker } from '@app/common/utils/handle-response-breaker';
-import { throwCatch } from '@app/common/utils/throw-catch';
 import { throwCatchGateWay } from '@app/common/utils/throw-catch-gateway';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
@@ -27,7 +27,6 @@ export class KafkaService implements OnModuleInit {
         this.userServiceBreaker = this.circuitBreakerService.create(
             CONSTANTS.CLIENT_ID.USER_CLIENT_ID,
             this.callUserService.bind( this ),
-            { timeout: 5000 }
         );
     }
 
@@ -50,7 +49,7 @@ export class KafkaService implements OnModuleInit {
     private async callUserService( data: { topic: string; payload: any } ) {
         return lastValueFrom(
             this.userClient.send( data.topic, data.payload ).pipe(
-                timeout( 3000 ),
+                timeout( CONSTANTS.TIME_OUT.request ),
                 catchError( err => {
                     console.error( `Error calling User Service (${ data.topic }):`, err );
                     throw err;
@@ -90,7 +89,7 @@ export class KafkaService implements OnModuleInit {
 
 
 
-    async createUser( userData: any ): Promise<BaseResponse> {
+    async createUser( userData: RegisterDto ): Promise<BaseResponse> {
 
         try {
             const result: BaseResponse = await this.userServiceBreaker.fire( {

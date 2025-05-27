@@ -3,7 +3,12 @@ export const SERVICES = {
     "user-service": 'USER_SERVICE',
     "health-service": 'HEALTH_SERVICE',
     "elasticsearch_service": 'ELASTICSEARCH_SERVICE',
-    "user-elasticsearch-service": 'USER-ELASTICSEARCH-SERVICE',
+
+    "user.elasticsearch-service": 'USER.ELASTICSEARCH-SERVICE',
+    "user.data-service": "USER.DATA-SERVICE",
+
+    "data-elasticsearch-service": "USER.ELASTICSEARCH-SERVICE",
+    "elasticsearch-data-service": "ELASTICSEARCH.DATA-SERVICE"
 
 
 }

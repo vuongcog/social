@@ -10,13 +10,14 @@ import { JwtService } from "@nestjs/jwt";
 import { JwtStrategy } from "../passport/jwt.strategy";
 import type { BaseResponse } from "@app/common";
 import { throwCatchHtpp } from "@app/common/utils/http-throw-catch";
+import { AuthKafkaService } from "../../kafka/auth/gateway.auth-kafka.service";
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard( 'jwt' ) {
 
     constructor(
         private reflector: Reflector,
-        private readonly kafkaService: KafkaService,
+        private readonly authKafkaService: AuthKafkaService,
         @Inject( CACHE_MANAGER ) private cacheManager: Cache,
 
         private jwtStrategy: JwtStrategy
@@ -54,7 +55,7 @@ export class JwtAuthGuard extends AuthGuard( 'jwt' ) {
 
         try {
 
-            const result: BaseResponse = await this.kafkaService.validateToken( token );
+            const result: BaseResponse = await this.authKafkaService.validateToken( token );
 
             if ( !result.data ) {
                 throw new UnauthorizedException( 'Invalid token' );

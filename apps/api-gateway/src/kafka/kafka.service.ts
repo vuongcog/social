@@ -1,5 +1,3 @@
-import { SERVER_NAME } from './../../../../libs/common/src/constants/server';
-import { console } from 'node:inspector/promises';
 import { BaseResponse } from './../../../../libs/common/src/interfaces/response.interface';
 import { CONSTANTS } from '@app/common';
 import { CircuitBreakerService } from '@app/common/circuit-breaker/circuit-breaker.service';
@@ -12,7 +10,6 @@ import type { UpdateDto } from '@app/common/dto/user.dto';
 import type { LoginDto } from '@app/common/dto/auth.dto';
 import { throwCatchGateWay } from '@app/common/utils/throw-catch-gateway';
 import { handlerResponseBreaker } from '@app/common/utils/handle-response-breaker';
-import { Public } from '../auth/public.decorator';
 @Injectable()
 export class KafkaService implements OnModuleInit {
     private authServiceBreaker: any;
@@ -35,19 +32,16 @@ export class KafkaService implements OnModuleInit {
         this.authServiceBreaker = this.circuitBreakerService.create(
             CONSTANTS.SERVER_NAME.AUTH_SERVER,
             this.callAuthService.bind( this ),
-            { timeout: 5000 }
         );
 
         this.userServiceBreaker = this.circuitBreakerService.create(
             CONSTANTS.SERVER_NAME.USER_SERVER,
             this.callUserService.bind( this ),
-            { timeout: 5000 }
         );
 
         this.elasticServiceBreaker = this.circuitBreakerService.create(
             CONSTANTS.SERVER_NAME.ELASTICSEARCH_SERVER,
             this.callElasticSearchService.bind( this ),
-            { timeout: 5000 }
         );
     }
 
@@ -83,7 +77,7 @@ export class KafkaService implements OnModuleInit {
     private async callAuthService( data: { topic: string; payload: any } ) {
         return lastValueFrom(
             this.authClient.send( data.topic, data.payload ).pipe(
-                timeout( 3000 ),
+                timeout( CONSTANTS.TIME_OUT.request ),
                 catchError( err => {
                     console.error( `Error calling Auth Service (${ data.topic }):`, err );
                     throw err;
@@ -95,7 +89,7 @@ export class KafkaService implements OnModuleInit {
     private async callUserService( data: { topic: string; payload: any } ) {
         return lastValueFrom(
             this.userClient.send( data.topic, data.payload ).pipe(
-                timeout( 3000 ),
+                timeout( CONSTANTS.TIME_OUT.request ),
                 catchError( err => {
                     console.error( `Error calling User Service (${ data.topic }):`, err );
                     throw err;
@@ -107,7 +101,7 @@ export class KafkaService implements OnModuleInit {
     private async callElasticSearchService( data: { topic: string; payload: any } ) {
         return lastValueFrom(
             this.elasticsearchClient.send( data.topic, data.payload ).pipe(
-                timeout( 3000 ),
+                timeout( CONSTANTS.TIME_OUT.request ),
                 catchError( err => {
                     console.error( `Error calling ElasticSearch Service (${ data.topic }):`, err );
                     throw err;
@@ -273,15 +267,17 @@ export class KafkaService implements OnModuleInit {
         }
     }
 
-    async search( payload: any ) {
+    async search( payload: any ): Promise<BaseResponse> {
         try {
-            return await this.authServiceBreaker.fire( {
+            const result = await this.authServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.ELSATICSEARCH_SEARCH,
                 payload: payload,
             } )
+            return result
         } catch ( error ) {
-            console.error( 'Circuit is open or error occurred:', error );
-            throw new Error( 'ElasticSearch service is currently unavailable' );
+
+            throw throwCatch( error );
+
         }
     }
     async advancedSearch( payload: any ) {

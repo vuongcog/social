@@ -83,22 +83,24 @@ export class AuthService {
             const salt = await bcrypt.genSalt();
             const hashedPassword = await bcrypt.hash( registerDto.password, salt );
 
-            const newUser: BaseResponse = await this.kafkaService.createUser( {
+            const result: BaseResponse = await this.kafkaService.createUser( {
                 ...registerDto,
                 password: hashedPassword,
                 provider: 'local',
             } );
 
-            const { password: _, ...result } = newUser.data;
+            const { password: _, ...userData } = result.data;
 
-            const loginResult = await this.login( result );
+            const loginResult = await this.login( userData );
 
             const responseValue: BaseResponse = {
                 statusCode: HttpStatus.CREATED,
                 status: 'success',
                 message: 'Register is successfuly',
+                messages: [ ...( result.messages ? result.messages : [] ) ],
+
                 data: {
-                    ...newUser.data,
+                    ...result.data,
                     accessToken: loginResult.accessToken,
                     refresh: loginResult.refreshToken,
                 },

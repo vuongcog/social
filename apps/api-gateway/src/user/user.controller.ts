@@ -5,11 +5,12 @@ import type { UpdateDto } from '@app/common/dto/user.dto';
 import { responseData } from '@app/common/utils/response';
 import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
 import { Public } from '../auth/public.decorator';
+import { UserKafkaService } from '../kafka/user/gateway.user-kafka.service';
 
 @Controller( 'users' )
 // @UseGuards( AuthGuard )
 export class UserController {
-    constructor( private readonly kafkaService: KafkaService ) { }
+    constructor( private readonly kafkaService: UserKafkaService ) { }
 
     @Get( 'me' )
     async getProfile( @Request() req, @Res() res ) {

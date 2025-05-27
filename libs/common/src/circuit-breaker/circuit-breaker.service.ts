@@ -6,9 +6,9 @@ export class CircuitBreakerService {
 
     create( name: string, fn: ( ...args: unknown[] ) => Promise<unknown>, options: CircuitBreaker.Options = {} ) {
         const defaultOptions = {
-            timeout: 3000,
+            timeout: 20000,
             errorThresholdPercentage: 50,
-            resetTimeout: 10000,
+            resetTimeout: 3000,
             ...options,
 
         }

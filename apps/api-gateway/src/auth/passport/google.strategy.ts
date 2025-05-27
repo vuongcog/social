@@ -2,15 +2,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { KafkaService } from '../../kafka/kafka.service';
 import type { BaseResponse } from '@app/common';
 import { throwCatchHtpp } from '@app/common/utils/http-throw-catch';
+import { AuthKafkaService } from '../../kafka/auth/gateway.auth-kafka.service';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy( Strategy, 'google' ) {
     constructor(
         private configService: ConfigService,
-        private readonly kafkaService: KafkaService
+        private readonly authKafkaService: AuthKafkaService
     ) {
 
         super( {
@@ -35,7 +35,7 @@ export class GoogleStrategy extends PassportStrategy( Strategy, 'google' ) {
         }
         try {
 
-            const result: BaseResponse = await this.kafkaService.validateGoogleUser( inforUser );
+            const result: BaseResponse = await this.authKafkaService.validateGoogleUser( inforUser );
             done( null, result.data );
 
         } catch ( error ) {

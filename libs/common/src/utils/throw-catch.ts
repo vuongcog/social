@@ -10,12 +10,16 @@ export function throwCatch( error ): BaseResponse {
         return error as BaseResponse
     }
     else {
+        if ( 'stack' in error ) {
+            delete error.stack;
+        }
+        const details = JSON.parse( JSON.stringify( error, Object.getOwnPropertyNames( error ) ) )
         return {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
             status: 'error',
             message: 'Internal server error occurred',
             error: {
-                details: error,
+                details: details
             }
         } as BaseResponse;
     }

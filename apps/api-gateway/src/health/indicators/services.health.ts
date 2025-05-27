@@ -3,6 +3,7 @@ import { HealthIndicator, HealthIndicatorResult } from '@nestjs/terminus';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom, timeout, catchError } from 'rxjs';
+import { CONSTANTS } from '@app/common';
 
 interface ServiceConfig {
     name: string;
@@ -66,7 +67,7 @@ export class ServicesHealthIndicator extends HealthIndicator {
         try {
             const result = await lastValueFrom(
                 this.httpService.get( service.url ).pipe(
-                    timeout( 3000 ),
+                    timeout( CONSTANTS.TIME_OUT.request ),
                     catchError( error => {
                         throw new Error( `${ service.name } health check failed: ${ error.message }` );
                     } )

@@ -1041,6 +1041,8 @@ export namespace Prisma {
     isActive: boolean | null
     created_at: Date | null
     updated_at: Date | null
+    isIndexed: boolean | null
+    indexedAt: Date | null
   }
 
   export type UserMaxAggregateOutputType = {
@@ -1053,6 +1055,8 @@ export namespace Prisma {
     isActive: boolean | null
     created_at: Date | null
     updated_at: Date | null
+    isIndexed: boolean | null
+    indexedAt: Date | null
   }
 
   export type UserCountAggregateOutputType = {
@@ -1065,6 +1069,8 @@ export namespace Prisma {
     isActive: number
     created_at: number
     updated_at: number
+    isIndexed: number
+    indexedAt: number
     _all: number
   }
 
@@ -1079,6 +1085,8 @@ export namespace Prisma {
     isActive?: true
     created_at?: true
     updated_at?: true
+    isIndexed?: true
+    indexedAt?: true
   }
 
   export type UserMaxAggregateInputType = {
@@ -1091,6 +1099,8 @@ export namespace Prisma {
     isActive?: true
     created_at?: true
     updated_at?: true
+    isIndexed?: true
+    indexedAt?: true
   }
 
   export type UserCountAggregateInputType = {
@@ -1103,6 +1113,8 @@ export namespace Prisma {
     isActive?: true
     created_at?: true
     updated_at?: true
+    isIndexed?: true
+    indexedAt?: true
     _all?: true
   }
 
@@ -1188,6 +1200,8 @@ export namespace Prisma {
     isActive: boolean
     created_at: Date
     updated_at: Date
+    isIndexed: boolean
+    indexedAt: Date | null
     _count: UserCountAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
     _max: UserMaxAggregateOutputType | null
@@ -1217,6 +1231,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: boolean
     updated_at?: boolean
+    isIndexed?: boolean
+    indexedAt?: boolean
     Role?: boolean | User$RoleArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
@@ -1231,6 +1247,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: boolean
     updated_at?: boolean
+    isIndexed?: boolean
+    indexedAt?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -1243,6 +1261,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: boolean
     updated_at?: boolean
+    isIndexed?: boolean
+    indexedAt?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
@@ -1255,9 +1275,11 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: boolean
     updated_at?: boolean
+    isIndexed?: boolean
+    indexedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "provider" | "providerId" | "isActive" | "created_at" | "updated_at", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "provider" | "providerId" | "isActive" | "created_at" | "updated_at" | "isIndexed" | "indexedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     Role?: boolean | User$RoleArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -1280,6 +1302,8 @@ export namespace Prisma {
       isActive: boolean
       created_at: Date
       updated_at: Date
+      isIndexed: boolean
+      indexedAt: Date | null
     }, ExtArgs["result"]["user"]>
     composites: {}
   }
@@ -1713,6 +1737,8 @@ export namespace Prisma {
     readonly isActive: FieldRef<"User", 'Boolean'>
     readonly created_at: FieldRef<"User", 'DateTime'>
     readonly updated_at: FieldRef<"User", 'DateTime'>
+    readonly isIndexed: FieldRef<"User", 'Boolean'>
+    readonly indexedAt: FieldRef<"User", 'DateTime'>
   }
     
 
@@ -3197,7 +3223,9 @@ export namespace Prisma {
     providerId: 'providerId',
     isActive: 'isActive',
     created_at: 'created_at',
-    updated_at: 'updated_at'
+    updated_at: 'updated_at',
+    isIndexed: 'isIndexed',
+    indexedAt: 'indexedAt'
   };
 
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -3305,6 +3333,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     created_at?: DateTimeFilter<"User"> | Date | string
     updated_at?: DateTimeFilter<"User"> | Date | string
+    isIndexed?: BoolFilter<"User"> | boolean
+    indexedAt?: DateTimeNullableFilter<"User"> | Date | string | null
     Role?: RoleListRelationFilter
   }
 
@@ -3318,6 +3348,8 @@ export namespace Prisma {
     isActive?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    isIndexed?: SortOrder
+    indexedAt?: SortOrderInput | SortOrder
     Role?: RoleOrderByRelationAggregateInput
   }
 
@@ -3334,6 +3366,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     created_at?: DateTimeFilter<"User"> | Date | string
     updated_at?: DateTimeFilter<"User"> | Date | string
+    isIndexed?: BoolFilter<"User"> | boolean
+    indexedAt?: DateTimeNullableFilter<"User"> | Date | string | null
     Role?: RoleListRelationFilter
   }, "id" | "email">
 
@@ -3347,6 +3381,8 @@ export namespace Prisma {
     isActive?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    isIndexed?: SortOrder
+    indexedAt?: SortOrderInput | SortOrder
     _count?: UserCountOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
     _min?: UserMinOrderByAggregateInput
@@ -3365,6 +3401,8 @@ export namespace Prisma {
     isActive?: BoolWithAggregatesFilter<"User"> | boolean
     created_at?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"User"> | Date | string
+    isIndexed?: BoolWithAggregatesFilter<"User"> | boolean
+    indexedAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   }
 
   export type RoleWhereInput = {
@@ -3417,6 +3455,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: Date | string
     updated_at?: Date | string
+    isIndexed?: boolean
+    indexedAt?: Date | string | null
     Role?: RoleCreateNestedManyWithoutUsersInput
   }
 
@@ -3430,6 +3470,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: Date | string
     updated_at?: Date | string
+    isIndexed?: boolean
+    indexedAt?: Date | string | null
     Role?: RoleUncheckedCreateNestedManyWithoutUsersInput
   }
 
@@ -3443,6 +3485,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     Role?: RoleUpdateManyWithoutUsersNestedInput
   }
 
@@ -3456,6 +3500,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     Role?: RoleUncheckedUpdateManyWithoutUsersNestedInput
   }
 
@@ -3469,6 +3515,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: Date | string
     updated_at?: Date | string
+    isIndexed?: boolean
+    indexedAt?: Date | string | null
   }
 
   export type UserUpdateManyMutationInput = {
@@ -3481,6 +3529,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type UserUncheckedUpdateManyInput = {
@@ -3493,6 +3543,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type RoleCreateInput = {
@@ -3580,6 +3632,17 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type RoleListRelationFilter = {
     every?: RoleWhereInput
     some?: RoleWhereInput
@@ -3605,6 +3668,8 @@ export namespace Prisma {
     isActive?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    isIndexed?: SortOrder
+    indexedAt?: SortOrder
   }
 
   export type UserMaxOrderByAggregateInput = {
@@ -3617,6 +3682,8 @@ export namespace Prisma {
     isActive?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    isIndexed?: SortOrder
+    indexedAt?: SortOrder
   }
 
   export type UserMinOrderByAggregateInput = {
@@ -3629,6 +3696,8 @@ export namespace Prisma {
     isActive?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    isIndexed?: SortOrder
+    indexedAt?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -3689,6 +3758,20 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type UserListRelationFilter = {
     every?: UserWhereInput
     some?: UserWhereInput
@@ -3740,6 +3823,10 @@ export namespace Prisma {
 
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type RoleUpdateManyWithoutUsersNestedInput = {
@@ -3850,6 +3937,17 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -3928,6 +4026,20 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type RoleCreateWithoutUsersInput = {
     id?: string
     name: string
@@ -3977,6 +4089,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: Date | string
     updated_at?: Date | string
+    isIndexed?: boolean
+    indexedAt?: Date | string | null
   }
 
   export type UserUncheckedCreateWithoutRoleInput = {
@@ -3989,6 +4103,8 @@ export namespace Prisma {
     isActive?: boolean
     created_at?: Date | string
     updated_at?: Date | string
+    isIndexed?: boolean
+    indexedAt?: Date | string | null
   }
 
   export type UserCreateOrConnectWithoutRoleInput = {
@@ -4025,6 +4141,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     created_at?: DateTimeFilter<"User"> | Date | string
     updated_at?: DateTimeFilter<"User"> | Date | string
+    isIndexed?: BoolFilter<"User"> | boolean
+    indexedAt?: DateTimeNullableFilter<"User"> | Date | string | null
   }
 
   export type RoleUpdateWithoutUsersInput = {
@@ -4052,6 +4170,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type UserUncheckedUpdateWithoutRoleInput = {
@@ -4064,6 +4184,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type UserUncheckedUpdateManyWithoutRoleInput = {
@@ -4076,6 +4198,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isIndexed?: BoolFieldUpdateOperationsInput | boolean
+    indexedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
 
