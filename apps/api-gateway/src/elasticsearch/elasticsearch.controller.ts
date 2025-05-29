@@ -5,11 +5,13 @@ import { throwCatchHtpp } from "@app/common/utils/http-throw-catch";
 import type { BaseResponse } from "@app/common";
 import { Public } from "../auth/public.decorator";
 import type { SearchPaginationDto } from "@app/common/dto/search.dto";
+import { createSortObject } from "@app/common/utils/sort";
 
 @Controller( 'search' )
 export class ElasticsearchController {
     constructor( private readonly elasticsearchKafkaClient: ElasticSearchKafkaService ) { }
 
+    @Public()
     @Get( "mark-indexed" )
     async test( @Res() res ) {
         try {
@@ -21,6 +23,7 @@ export class ElasticsearchController {
         }
     }
 
+    @Public()
     @Get( "delete-all-documents" )
     async delete( @Res() res ) {
         try {
@@ -30,11 +33,23 @@ export class ElasticsearchController {
             throw throwCatchHtpp( error )
         }
     }
-
+    @Public()
     @Get( "index-records" )
-    async test1( @Res() res ) {
+    async indexRecordsAndMarkAsIndexed( @Res() res ) {
         try {
             const result = await this.elasticsearchKafkaClient.indexRecordsAndMarkAsIndexed();
+            return responseData( res, result );
+        } catch ( error ) {
+            throw throwCatchHtpp( error )
+
+        }
+    }
+
+    @Public()
+    @Get( "update-indexed-docs" )
+    async updateDocsAndMarkAsIndexed( @Res() res ) {
+        try {
+            const result = await this.elasticsearchKafkaClient.updateDocumentsAndMarkAsIndexed();
             return responseData( res, result );
         } catch ( error ) {
             throw throwCatchHtpp( error )
@@ -67,8 +82,7 @@ export class ElasticsearchController {
             };
 
             if ( sort ) {
-                const [ field, order ] = sort.split( ':' );
-                searchParams.sort = [ { [ field ]: { order: order || 'asc' } } ];
+                searchParams.sort = createSortObject( sort );
             }
 
             const payload = { index, searchParams };
@@ -79,7 +93,7 @@ export class ElasticsearchController {
             throw throwCatchHtpp( error );
         }
     }
-
+    @Public()
     @Post( "search-advance/:index" )
     async advancedSearch(
         @Param( 'index' ) index: string,
@@ -87,9 +101,37 @@ export class ElasticsearchController {
         @Res() res,
     ) {
         try {
+
+            if ( !index || index.trim() === '' ) {
+                return responseData( res, {
+                    status: "error",
+                    statusCode: HttpStatus.BAD_REQUEST,
+                    message: "Index parameter is required",
+                    data: null
+                } );
+            }
+
+            if ( !searchParams.query ) {
+                return responseData( res, {
+                    status: "error",
+                    statusCode: HttpStatus.BAD_REQUEST,
+                    message: "Query is required in request body",
+                    data: null
+                } );
+            }
+
+            const normalizedSearchParams = {
+                query: searchParams.query,
+                page: Math.max( 1, searchParams.page || 1 ),
+                limit: Math.min( Math.max( 1, searchParams.limit || 10 ), 100 ),
+                sort: searchParams.sort || undefined,
+                _source: searchParams._source || undefined,
+                highlight: searchParams.highlight || undefined
+            };
+
             const payload = {
-                index,
-                searchParams,
+                index: index.trim(),
+                searchParams: normalizedSearchParams,
             };
 
             const result = await this.elasticsearchKafkaClient.advancedSearch( payload );

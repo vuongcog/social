@@ -105,9 +105,224 @@ export class MyElasticSearchService {
   }
 
 
-  async indexRecordsAndMarkAsIndexed(): Promise<BaseResponse> {
+  async updateRecordsAndMarkAsIndexed(): Promise<BaseResponse> {
     try {
-      const unindexedRecords = await this.elasticsearchDataKafkaClient.getUnindexedRecords();
+
+      const unindexedRecords = await this.elasticsearchDataKafkaClient.getIndexedRecords();
+      if ( unindexedRecords.data.length === 0 ) {
+
+        return {
+          status: 'success',
+          statusCode: HttpStatus.OK,
+          message: 'All data has been indexed previously',
+        }
+      }
+      const body = unindexedRecords.data.flatMap( record => [
+        { index: { _index: 'users', _id: record.id.toString() } },
+        {
+          ...record,
+          isIndexed: undefined,
+          indexedAt: undefined
+        }
+      ] );
+
+      const esResponse = await this.esService.bulk( { body } );
+
+      if ( esResponse.errors ) {
+        const erroredDocuments = esResponse.items.filter( item => item.index?.error );
+        console.error( 'Elasticsearch errors:', erroredDocuments );
+        return {
+          status: 'error',
+          statusCode: HttpStatus.OK,
+          error: {
+            messages: erroredDocuments.map( doc => {
+              const error = doc.index?.error;
+              return error
+                ? `${ error.type }: ${ error.reason }`
+                : 'Unknown error';
+            } ),
+          }
+        };
+      }
+
+      const recordIds = unindexedRecords.data.map( record => record.id );
+      const options = {
+        where: {
+          id: { in: recordIds }
+        },
+        data: {
+          isIndexed: true,
+          indexedAt: new Date()
+        }
+      }
+      const result = await this.elasticsearchDataKafkaClient.updateUnIndexedEntities( options )
+      return {
+        status: 'success',
+        statusCode: HttpStatus.CREATED,
+        message: `Successfully indexed and marked ${ unindexedRecords.data.length } records`,
+        data: result.data,
+      }
+
+    } catch ( error ) {
+      throw throwCatch( error )
+    }
+  }
+
+
+  async indexRecordsAndMarkAsIndexed( limit: number ): Promise<BaseResponse> {
+    try {
+
+      const records = await this.elasticsearchDataKafkaClient.getUsers( limit );
+
+      if ( records.data.length === 0 ) {
+        return {
+          status: 'success',
+          statusCode: HttpStatus.OK,
+          message: 'All data has been indexed previously',
+        }
+      }
+
+      console.log( `Processing ${ records.data.length } records...` );
+
+      const existingDocs: any[] = [];
+      const newDocs: any[] = [];
+
+      const batchSize = 100;
+      for ( let i = 0; i < records.data.length; i += batchSize ) {
+        const batch = records.data.slice( i, i + batchSize );
+
+        const mgetResponse = await this.esService.mget( {
+          index: 'users',
+          body: {
+            ids: batch.map( record => record.id.toString() )
+          }
+        } );
+
+        mgetResponse.docs.forEach( ( doc: any, index: number ) => {
+          const record = batch[ index ];
+          if ( doc.found === true ) {
+            existingDocs.push( record );
+          } else {
+            newDocs.push( record );
+          }
+        } );
+      }
+
+      console.log( `Found ${ existingDocs.length } existing documents, ${ newDocs.length } new documents` );
+
+      const body: any[] = [];
+
+      newDocs.forEach( ( record: any ) => {
+        body.push(
+          { create: { _index: 'users', _id: record.id.toString() } },
+          {
+            ...record,
+            isIndexed: undefined,
+            indexedAt: undefined
+          }
+        );
+      } );
+
+      existingDocs.forEach( ( record: any ) => {
+        body.push(
+          { index: { _index: 'users', _id: record.id.toString() } },
+          {
+            ...record,
+            isIndexed: undefined,
+            indexedAt: undefined
+          }
+        );
+      } );
+
+      if ( body.length === 0 ) {
+        return {
+          status: 'success',
+          statusCode: HttpStatus.OK,
+          message: 'No documents to process',
+        }
+      }
+
+      const esResponse = await this.esService.bulk( {
+        body,
+        refresh: 'wait_for'
+      } );
+
+      console.log( `Bulk operation completed: took ${ esResponse.took }ms, errors: ${ esResponse.errors }` );
+
+      if ( esResponse.errors ) {
+        const erroredDocuments = esResponse.items.filter( ( item: any ) =>
+          item.create?.error || item.index?.error
+        );
+
+        console.error( 'Elasticsearch errors:', erroredDocuments );
+
+        return {
+          status: 'error',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: {
+            messages: erroredDocuments.map( ( doc: any ) => {
+              const error = doc.create?.error || doc.index?.error;
+              return error
+                ? `${ error.type }: ${ error.reason }`
+                : 'Unknown error';
+            } ),
+          }
+        };
+      }
+
+      const successfulOperations = esResponse.items.filter( ( item: any ) => {
+        const status = item.create?.status || item.index?.status;
+        return status >= 200 && status < 300;
+      } );
+
+      console.log( `Successfully processed ${ successfulOperations.length } documents` );
+
+      const createdCount = esResponse.items.filter( ( item: any ) =>
+        item.create && item.create.result === 'created'
+      ).length;
+
+      const updatedCount = esResponse.items.filter( ( item: any ) =>
+        item.index && item.index.result === 'updated'
+      ).length;
+
+      console.log( `Created: ${ createdCount }, Updated: ${ updatedCount }` );
+
+      const recordIds = records.data.map( record => record.id );
+      const options = {
+        where: {
+          id: { in: recordIds }
+        },
+        data: {
+          isIndexed: true,
+          indexedAt: new Date()
+        }
+      }
+
+      const result = await this.elasticsearchDataKafkaClient.updateUnIndexedEntities( options );
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.CREATED,
+        message: `Successfully processed ${ records.data.length } records (Created: ${ createdCount }, Updated: ${ updatedCount })`,
+        data: {
+          ...result.data,
+          statistics: {
+            total: records.data.length,
+            created: createdCount,
+            updated: updatedCount,
+            failed: esResponse.items.length - successfulOperations.length
+          }
+        },
+      }
+
+    } catch ( error ) {
+      throw throwCatch( error )
+    }
+  }
+
+  async updateDocumentsAndMarkAsIndexed(): Promise<BaseResponse> {
+    try {
+      const unindexedRecords = await this.elasticsearchDataKafkaClient.getIndexedRecords();
       if ( unindexedRecords.data.length === 0 ) {
 
         return {

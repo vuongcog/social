@@ -1,9 +1,11 @@
+import { console } from 'node:inspector/promises';
 import type { BaseResponse } from "@app/common";
 import type { UpdateDto } from "@app/common/dto/user.dto";
 import { throwCatch } from "@app/common/utils/throw-catch";
 import { PrismaService } from "@app/database";
 import type { User } from "@app/database/generated/prisma";
 import { HttpStatus, Injectable } from "@nestjs/common";
+import { type } from 'node:os';
 
 @Injectable()
 export class UserProcessingService {
@@ -35,6 +37,48 @@ export class UserProcessingService {
         }
     }
 
+    async getIndexedRecords( limit = 1000 ): Promise<BaseResponse> {
+        try {
+            const data = await this.prisma.user.findMany( {
+                where: {
+                    isIndexed: true
+                },
+                take: limit,
+                orderBy: {
+                    id: 'asc'
+                }
+            } );
+            return {
+                status: 'success',
+                statusCode: HttpStatus.OK,
+                message: 'Query successfully',
+                data: data,
+            }
+
+        } catch ( error ) {
+            throw throwCatch( error )
+        }
+    }
+
+    async getUsers( limit: number = 2000 ): Promise<BaseResponse> {
+        try {
+            const data = await this.prisma.user.findMany( {
+                take: limit,
+                orderBy: {
+                    id: 'asc'
+                }
+            } );
+            return {
+                status: 'success',
+                statusCode: HttpStatus.OK,
+                message: 'Query successfully',
+                data: data,
+            }
+
+        } catch ( error ) {
+            throw throwCatch( error )
+        }
+    }
 
     async countUnindexedRecords(): Promise<BaseResponse> {
         try {

@@ -124,6 +124,16 @@ export class UserProcessingController {
         }
     }
 
+    @MessagePattern( KAFKA_TOPICS.DATA_GET_INDEXEX_RECORDS )
+    async getIndexedRecords(): Promise<BaseResponse> {
+        try {
+            const result = await this.dataProcessingService.getIndexedRecords();
+            return result
+        } catch ( error ) {
+            return throwCatch( error )
+        }
+    }
+
     @MessagePattern( KAFKA_TOPICS.DATA_GET_UNINDEX_COUNT )
     async countUnindexedRecords(): Promise<BaseResponse> {
         try {
@@ -143,4 +153,18 @@ export class UserProcessingController {
             return throwCatch( error )
         }
     }
+
+    @MessagePattern( KAFKA_TOPICS.DATA_GET_USERS )
+    async getUsers( @Payload() payload ): Promise<BaseResponse> {
+        try {
+            if ( typeof payload !== "number" ) {
+                payload = parseInt( payload )
+            }
+            const result = await this.dataProcessingService.getUsers( payload );
+            return result
+        } catch ( error ) {
+            return throwCatch( error )
+        }
+    }
+
 }

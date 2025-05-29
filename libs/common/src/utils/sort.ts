@@ -1,4 +1,4 @@
-function createSortObject( sortString: string ): any[] {
+export function createSortObject( sortString: string ): any[] {
     if ( !sortString ) return [];
 
     return sortString.split( ',' ).map( item => {

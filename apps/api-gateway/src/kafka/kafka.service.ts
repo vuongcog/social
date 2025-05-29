@@ -67,6 +67,7 @@ export class KafkaService implements OnModuleInit {
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_ADVANCED_SEARCH )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_HEALTH )
 
+
         await Promise.all( [
             this.authClient.connect(),
             this.userClient.connect(),

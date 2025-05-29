@@ -63,10 +63,20 @@ export class ElasticsearchController {
   }
 
   @MessagePattern( KAFKA_TOPICS.ELASTICSEARCH_INDEX_RECORDS_AND_MARK_AS_INDEXED )
-  async indexRecordsAndMarkAsIndexed( @Payload() payload: any ) {
+  async indexRecordsAndMarkAsIndexed( @Payload() payload: number ) {
 
     try {
-      const result = this.esService.indexRecordsAndMarkAsIndexed();
+      const result = this.esService.indexRecordsAndMarkAsIndexed( 2000 );
+      return result;
+    } catch ( error ) {
+      return throwCatch( error )
+    }
+  }
+
+  @MessagePattern( KAFKA_TOPICS.ELASTICSEARCH_UPDATE_DOCUMENTS_AND_MARK_AS_INDEXED )
+  async updateDocumentsAndMarkAsIndexed( @Payload() payload: any ) {
+    try {
+      const result = this.esService.updateRecordsAndMarkAsIndexed();
       return result;
     } catch ( error ) {
       return throwCatch( error )
@@ -78,42 +88,6 @@ export class ElasticsearchController {
     return this.esService.deleteDocument( payload.index, payload.id );
   }
 
-  // @MessagePattern( KAFKA_TOPICS.ELSATICSEARCH_SEARCH )
-  // async search(
-  //   @Payload() payload: {
-  //     index: string,
-  //     queries: {
-  //       query: string,
-  //       size?: number,
-  //       from?: number
-  //     }
-  //   }
-  // ): Promise<BaseResponse> {
-  //   try {
-  //     const { index, queries } = payload;
-  //     const query = queries.query;
-  //     const size = queries.size ?? 10;
-  //     const from = queries.from ?? 0;
-  //     let esQuery;
-  //     if ( query ) {
-  //       esQuery = {
-  //         multi_match: {
-  //           query,
-  //           fields: [ '*' ],
-  //           fuzziness: 'AUTO',
-  //         },
-  //       };
-  //     } else {
-  //       esQuery = { match_all: {} };
-  //     }
-
-  //     const result = this.esService.search( index, esQuery, { size, from } );
-  //     return result
-
-  //   } catch ( error ) {
-  //     return throwCatch( error );
-  //   }
-  // }
 
   @MessagePattern( KAFKA_TOPICS.ELASTICSEARCH_ADVANCED_SEARCH )
   async advancedSearch( @Payload() payload: any ) {

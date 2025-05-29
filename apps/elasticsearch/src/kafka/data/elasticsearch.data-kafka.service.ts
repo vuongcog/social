@@ -28,11 +28,14 @@ export class ElasticSearchDataKafkaService implements OnModuleInit {
     onModuleInit() {
         this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_GET_UNINDEX_RECORD )
         this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_GET_UNINDEX_COUNT )
+        this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_GET_INDEXEX_RECORDS )
         this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_UPDATE_FOR_UNINDEXED_ENTITIES )
         this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_UPDATE_USER )
+        this.elasticesarchDataClient.subscribeToResponseOf( CONSTANTS.KAFKA_TOPICS.DATA_GET_USERS )
     }
 
     private async callElasticSearchService( data: { topic: string; payload: any } ) {
+
         return lastValueFrom(
             this.elasticesarchDataClient.send( data.topic, data.payload ).pipe(
                 timeout( CONSTANTS.TIME_OUT.request ),
@@ -49,6 +52,36 @@ export class ElasticSearchDataKafkaService implements OnModuleInit {
             const result = await this.elasticSearchDataSreviceBreaker.fire( {
                 topic: KAFKA_TOPICS.DATA_GET_UNINDEX_RECORD,
                 payload: {}
+
+            } );
+            return handlerResponseBreaker( result )
+
+        } catch ( error ) {
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.ELASTICSEARCH_DATA_CLIENT_ID, CONSTANTS.SERVER_ID.DATA_SERVER_ID )
+
+        }
+    }
+
+    async getIndexedRecords(): Promise<BaseResponse> {
+        try {
+            const result = await this.elasticSearchDataSreviceBreaker.fire( {
+                topic: KAFKA_TOPICS.DATA_GET_INDEXEX_RECORDS,
+                payload: {}
+
+            } );
+            return handlerResponseBreaker( result )
+
+        } catch ( error ) {
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.ELASTICSEARCH_DATA_CLIENT_ID, CONSTANTS.SERVER_ID.DATA_SERVER_ID )
+
+        }
+    }
+
+    async getUsers( payload: number ): Promise<BaseResponse> {
+        try {
+            const result = await this.elasticSearchDataSreviceBreaker.fire( {
+                topic: KAFKA_TOPICS.DATA_GET_USERS,
+                payload: payload,
 
             } );
             return handlerResponseBreaker( result )

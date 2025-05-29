@@ -29,6 +29,7 @@ export class ElasticSearchKafkaService implements OnModuleInit {
     async onModuleInit() {
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_MARK_EXISTING_RECORD_AS_INDEXED )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_INDEX_RECORDS_AND_MARK_AS_INDEXED )
+        this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_UPDATE_DOCUMENTS_AND_MARK_AS_INDEXED )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_DELETE_ALL_DOCUMENT )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_DELETE_INDEX )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_INDEX_DOCUMENT )
@@ -86,6 +87,20 @@ export class ElasticSearchKafkaService implements OnModuleInit {
         try {
             const result = await this.elasticServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.ELASTICSEARCH_INDEX_RECORDS_AND_MARK_AS_INDEXED,
+                payload: {},
+            } )
+            return handlerResponseBreaker( result );
+
+        } catch ( error ) {
+            throw throwCatchGateWay( error, CONSTANTS.CLIENT_ID.API_GATEWAY_ELASTICSEARCH_CLIENT_ID, CONSTANTS.SERVER_NAME.ELASTICSEARCH_SERVER );
+
+        }
+    }
+
+    async updateDocumentsAndMarkAsIndexed(): Promise<BaseResponse> {
+        try {
+            const result = await this.elasticServiceBreaker.fire( {
+                topic: KAFKA_TOPICS.ELASTICSEARCH_UPDATE_DOCUMENTS_AND_MARK_AS_INDEXED,
                 payload: {},
             } )
             return handlerResponseBreaker( result );

@@ -5,7 +5,7 @@ services:
     image: docker.elastic.co/kibana/kibana:8.12.2
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_SERVICEACCOUNTTOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpSZ0g4NlBhWFRDNlEyQXFMeUxsVE9n
+      - ELASTICSEARCH_SERVICEACCOUNTTOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjoyT2Z3X0VvalNPS3hHTGRMRGdIWmJB
       - XPACK_GUIDEDONBOARDING_ENABLED=false
       - XPACK_SECURITY_ENCRYPTIONKEY=something_at_least_32_characters
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=something_different_at_least_32_chars
