@@ -23,17 +23,13 @@ export class HealthController {
     @HealthCheck()
     check() {
         const check = [
-            // Kiểm tra API Gateway
             () => this.memory.checkHeap( 'memory_heap', 300 * 1024 * 1024 ),
             () => this.disk.checkStorage( 'disk', { path: '/', thresholdPercent: 0.9 } ),
-            // Kiểm tra tất cả các services
             () => this.servicesHealth.checkServices(),
         ]
         return this.health.check( [
-            // Kiểm tra API Gateway
             () => this.memory.checkHeap( 'memory_heap', 300 * 1024 * 1024 ),
             () => this.disk.checkStorage( 'disk', { path: '/', thresholdPercent: 0.9 } ),
-            // Kiểm tra tất cả các services
             () => this.servicesHealth.checkServices(),
         ] );
     }
@@ -42,7 +38,6 @@ export class HealthController {
     @HealthCheck()
     checkLiveness() {
         return this.health.check( [
-            // Kiểm tra API Gateway có đang chạy không
             () => this.memory.checkHeap( 'memory_heap', 300 * 1024 * 1024 ),
             () => this.disk.checkStorage( 'disk', { path: '/', thresholdPercent: 0.9 } ),
         ] );
@@ -52,7 +47,6 @@ export class HealthController {
     @HealthCheck()
     checkServices() {
         return this.health.check( [
-            // Kiểm tra tất cả các services
             () => this.servicesHealth.checkServices(),
         ] );
     }
@@ -61,7 +55,6 @@ export class HealthController {
     @HealthCheck()
     checkService( @Param( 'serviceName' ) serviceName: string ) {
         return this.health.check( [
-            // Kiểm tra một service cụ thể
             () => this.servicesHealth.checkService( serviceName ),
         ] );
     }

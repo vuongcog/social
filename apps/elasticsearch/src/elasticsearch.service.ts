@@ -6,7 +6,7 @@ import { userMapping } from './mappings/user.maping';
 import { ConfigService } from '@nestjs/config';
 import { Record } from '@prisma/client/runtime/library';
 import { throwCatch } from '@app/common/utils/throw-catch';
-import type { BaseResponse } from '@app/common';
+import type { BaseResponse, SuggestionOptions, SuggestionResult } from '@app/common';
 import type { SearchPaginationDto } from '@app/common/dto/search.dto';
 
 @Injectable()
@@ -73,7 +73,6 @@ export class MyElasticSearchService {
   }
 
   async markExistingRecordsAsIndexed(): Promise<BaseResponse> {
-
     try {
       const esResponse = await this.esService.search( {
         index: 'users',
@@ -168,6 +167,292 @@ export class MyElasticSearchService {
     }
   }
 
+  async getAutocompleteSuggestions(
+    query: string,
+    options: SuggestionOptions = { field: 'all', size: 10 }
+  ): Promise<BaseResponse> {
+    try {
+      const { field, size = 10, fuzzy = false } = options;
+
+      const suggestions: any = {};
+
+      if ( field === 'name' || field === 'all' ) {
+        suggestions.name_suggest = {
+          prefix: query,
+          completion: {
+            field: 'name_suggest',
+            size: size,
+            ...( fuzzy && {
+              fuzzy: {
+                fuzziness: 'AUTO',
+                min_length: 3
+              }
+            } )
+          }
+        };
+      }
+
+      if ( field === 'email' || field === 'all' ) {
+        suggestions.email_suggest = {
+          prefix: query,  // Đặt text ở đây
+          completion: {
+            field: 'email_suggest',
+            size: size,
+            ...( fuzzy && {
+              fuzzy: {
+                fuzziness: 'AUTO',
+                min_length: 3
+              }
+            } )
+          }
+        };
+      }
+
+      const response = await this.esService.search( {
+        index: this.indices.users,
+        body: {
+          suggest: suggestions
+        }
+      } );
+      const results: SuggestionResult[] = [];
+      if ( response?.suggest?.name_suggest ) {
+        const options = response.suggest.name_suggest[ 0 ].options;
+        if ( Array.isArray( options ) ) {
+          options.forEach( ( option: any ) => {
+            results.push( {
+              text: option.text,
+              score: option._score,
+              source: option._source,
+              type: 'name'
+            } );
+          } );
+        }
+      }
+
+      if ( response?.suggest?.email_suggest ) {
+        const options = response.suggest.email_suggest[ 0 ].options;
+        if ( Array.isArray( options ) ) {
+          options.forEach( ( option: any ) => {
+            results.push( {
+              text: option.text,
+              score: option._score,
+              source: option._source,
+              type: 'email'
+            } );
+          } );
+        }
+      }
+      results.sort( ( a, b ) => b.score - a.score );
+      return {
+        status: 'success',
+        statusCode: HttpStatus.OK,
+        message: 'Suggestions retrieved successfully',
+        data: {
+          suggestions: results.slice( 0, size ),
+          total: results.length,
+          query: query
+        }
+      };
+    } catch ( error ) {
+      throw throwCatch( error );
+    }
+  }
+  async getSpellingSuggestions( query: string, field: 'name' | 'email' = 'name' ): Promise<BaseResponse> {
+    try {
+      const response = await this.esService.search( {
+        index: this.indices.users,
+        body: {
+          suggest: {
+            text: query,
+            spell_suggest: {
+              term: {
+                field: field,
+                size: 5,
+                suggest_mode: 'always',
+                min_word_length: 2,
+                min_doc_freq: 1,
+              }
+            }
+          }
+        }
+      } );
+
+      const suggestions = response?.suggest?.spell_suggest.map( ( suggestion: any ) => ( {
+        original: suggestion.text,
+        suggestions: suggestion.options.map( ( opt: any ) => ( {
+          text: opt.text,
+          score: opt.score,
+          frequency: opt.freq
+        } ) )
+      } ) );
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.OK,
+        message: 'Spelling suggestions retrieved successfully',
+        data: {
+          suggestions,
+          query: query,
+          field: field
+        }
+      };
+
+    } catch ( error ) {
+      throw throwCatch( error );
+    }
+  }
+
+  async getPhraseSuggestions( query: string, field: 'name' | 'email' = 'name' ): Promise<BaseResponse> {
+    try {
+      const response = await this.esService.search( {
+        index: this.indices.users,
+        body: {
+          suggest: {
+            text: query,
+            phrase_suggest: {
+              phrase: {
+                field: field,
+                size: 100,
+                gram_size: 2,
+                direct_generator: [ {
+                  field: field,
+                  suggest_mode: 'popular',
+                  min_word_length: 2,
+                  min_doc_freq: 1
+                } ],
+                highlight: {
+                  pre_tag: '<em>',
+                  post_tag: '</em>'
+                }
+              }
+            }
+          }
+        }
+      } );
+
+      const options = response?.suggest?.phrase_suggest[ 0 ].options
+      let suggestions
+      if ( Array.isArray( options ) ) {
+        suggestions = options.map( ( option: any ) => ( {
+          text: option.text,
+          score: option.score,
+          highlighted: option.highlighted || option.text
+        } ) );
+      }
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.OK,
+        message: 'Phrase suggestions retrieved successfully',
+        data: {
+          suggestions,
+          query: query,
+          field: field
+        }
+      };
+
+    } catch ( error ) {
+      throw throwCatch( error );
+    }
+  }
+
+  async searchWithSuggestions(
+    index: string,
+    query: any,
+    suggestQuery?: string,
+    options: SearchPaginationDto = { query: undefined }
+  ): Promise<BaseResponse> {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        sort,
+        _source,
+        highlight
+      } = options;
+
+      const currentPage = Math.max( 1, page );
+      const itemsPerPage = Math.min( Math.max( 1, limit ), 100 );
+      const from = ( currentPage - 1 ) * itemsPerPage;
+
+      const searchParams: any = {
+        index,
+        body: {
+          query,
+          size: itemsPerPage,
+          from: from,
+          track_total_hits: true
+        }
+      };
+
+      if ( suggestQuery ) {
+        searchParams.body.suggest = {
+          name_suggest: {
+            prefix: suggestQuery,
+            completion: {
+              field: 'name_suggest',
+              size: 5
+            }
+          },
+          email_suggest: {
+            prefix: suggestQuery,
+            completion: {
+              field: 'email_suggest',
+              size: 5
+            }
+          }
+        };
+      }
+
+      if ( sort ) searchParams.body.sort = sort;
+      if ( _source ) searchParams.body._source = _source;
+      if ( highlight ) searchParams.body.highlight = highlight;
+
+      const searchResult = await this.esService.search( searchParams );
+
+      const totalItems = typeof searchResult.hits.total === 'object'
+        ? searchResult.hits.total.value
+        : searchResult.hits.total;
+
+      const totalPages = Math.ceil( totalItems! / itemsPerPage );
+      const hasNextPage = currentPage < totalPages;
+      const hasPreviousPage = currentPage > 1;
+      const to = Math.min( from + itemsPerPage, totalItems! );
+
+      let suggestions
+
+      if ( searchResult.suggest ) {
+        suggestions = {
+          names: searchResult.suggest.name_suggest?.[ 0 ]?.options || [],
+          emails: searchResult.suggest.email_suggest?.[ 0 ]?.options || []
+        };
+      }
+
+      return {
+        status: "success",
+        statusCode: HttpStatus.OK,
+        message: "Search with suggestions completed successfully",
+        data: {
+          items: searchResult.hits.hits,
+          suggestions,
+          pagination: {
+            currentPage,
+            totalPages,
+            totalItems,
+            itemsPerPage,
+            hasNextPage,
+            hasPreviousPage,
+            from: from + 1,
+            to
+          },
+          took: searchResult.took
+        }
+      };
+
+    } catch ( error ) {
+      throw throwCatch( error );
+    }
+  }
 
   async indexRecordsAndMarkAsIndexed( limit: number ): Promise<BaseResponse> {
     try {
@@ -182,7 +467,6 @@ export class MyElasticSearchService {
         }
       }
 
-      console.log( `Processing ${ records.data.length } records...` );
 
       const existingDocs: any[] = [];
       const newDocs: any[] = [];
@@ -208,29 +492,20 @@ export class MyElasticSearchService {
         } );
       }
 
-      console.log( `Found ${ existingDocs.length } existing documents, ${ newDocs.length } new documents` );
 
       const body: any[] = [];
 
       newDocs.forEach( ( record: any ) => {
         body.push(
           { create: { _index: 'users', _id: record.id.toString() } },
-          {
-            ...record,
-            isIndexed: undefined,
-            indexedAt: undefined
-          }
+          this.enhanceDocumentForSuggestion( record )
         );
       } );
 
       existingDocs.forEach( ( record: any ) => {
         body.push(
           { index: { _index: 'users', _id: record.id.toString() } },
-          {
-            ...record,
-            isIndexed: undefined,
-            indexedAt: undefined
-          }
+          this.enhanceDocumentForSuggestion( record )
         );
       } );
 
@@ -247,14 +522,11 @@ export class MyElasticSearchService {
         refresh: 'wait_for'
       } );
 
-      console.log( `Bulk operation completed: took ${ esResponse.took }ms, errors: ${ esResponse.errors }` );
-
       if ( esResponse.errors ) {
         const erroredDocuments = esResponse.items.filter( ( item: any ) =>
           item.create?.error || item.index?.error
         );
 
-        console.error( 'Elasticsearch errors:', erroredDocuments );
 
         return {
           status: 'error',
@@ -275,8 +547,6 @@ export class MyElasticSearchService {
         return status >= 200 && status < 300;
       } );
 
-      console.log( `Successfully processed ${ successfulOperations.length } documents` );
-
       const createdCount = esResponse.items.filter( ( item: any ) =>
         item.create && item.create.result === 'created'
       ).length;
@@ -284,8 +554,6 @@ export class MyElasticSearchService {
       const updatedCount = esResponse.items.filter( ( item: any ) =>
         item.index && item.index.result === 'updated'
       ).length;
-
-      console.log( `Created: ${ createdCount }, Updated: ${ updatedCount }` );
 
       const recordIds = records.data.map( record => record.id );
       const options = {
@@ -385,20 +653,90 @@ export class MyElasticSearchService {
 
   async updateMapping( index: string, mapping: Record<string, any> ) {
     try {
+      const exists = await this.esService.indices.exists( { index } );
+
+      if ( !exists ) {
+        await this.createIndex( index, mapping );
+        return { acknowledged: true, created: true };
+      }
+
       await this.esService.indices.putMapping( {
         index,
         body: mapping.mappings,
-      } )
+      } );
 
-      return { acknowacknowledgedled: true };
+      return { acknowledged: true, updated: true };
 
     } catch ( error ) {
       this.logger.error( `Failed to update mapping for index '${ index }': ${ error.message }` );
+
+      if ( error.message.includes( 'mapper_parsing_exception' ) ||
+        error.message.includes( 'illegal_argument_exception' ) ) {
+        this.logger.warn( 'Mapping conflict detected, requires reindex' );
+        return { acknowledged: false, error: error.message, requiresReindex: true };
+      }
+
       return { acknowledged: false, error: error.message };
     }
   }
 
+  async fixMappingAndReindex(): Promise<BaseResponse> {
+    try {
+      this.logger.log( 'Starting mapping fix and reindex process...' );
+      try {
+        await this.esService.indices.delete( {
+          index: this.indices.users
+        } );
+        this.logger.log( 'Deleted existing index' );
+      } catch ( error ) {
+        this.logger.log( 'Index does not exist, proceeding...' );
+      }
 
+      await this.createIndex( this.indices.users, userMapping );
+      this.logger.log( 'Created index with new mapping' );
+
+      const allUsers = await this.elasticsearchDataKafkaClient.getUsers( 3000 );
+
+      if ( allUsers.data.length > 0 ) {
+        const body = allUsers.data.flatMap( record => [
+          { index: { _index: this.indices.users, _id: record.id.toString() } },
+          this.enhanceDocumentForSuggestion( record )
+        ] );
+
+        const response = await this.esService.bulk( {
+          body,
+          refresh: 'wait_for'
+        } );
+
+        if ( response.errors ) {
+          this.logger.error( 'Bulk index errors:', response.errors );
+          return {
+            status: 'error',
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            error: { message: 'Bulk indexing failed' }
+          };
+        }
+
+        await this.elasticsearchDataKafkaClient.updateUnIndexedEntities( {
+          where: { id: { in: allUsers.data.map( u => u.id ) } },
+          data: { isIndexed: true, indexedAt: new Date() }
+        } );
+
+        this.logger.log( `Successfully reindexed ${ allUsers.data.length } documents` );
+      }
+
+      return {
+        status: 'success',
+        statusCode: HttpStatus.OK,
+        message: 'Mapping fixed and data reindexed successfully',
+        data: { reindexedCount: allUsers.data.length }
+      };
+
+    } catch ( error ) {
+      this.logger.error( 'Fix mapping failed:', error );
+      throw throwCatch( error );
+    }
+  }
 
   async indexDocument( index: string, id: string | undefined, body: Record<string, any> ): Promise<BaseResponse> {
     try {
@@ -422,12 +760,28 @@ export class MyElasticSearchService {
         } as BaseResponse
       }
 
+      const enhancedBody = {
+        ...body,
+        ...( body.name && {
+          name_suggest: {
+            input: [ body.name ],
+            weight: 10
+          }
+        } ),
+        ...( body.email && {
+          email_suggest: {
+            input: [ body.email, body.email.split( '@' )[ 0 ] ],
+            weight: 5
+          }
+        } )
+      };
+
+
       const result = await this.esService.index( {
         index,
         id,
-        body,
+        body: enhancedBody,
         refresh: 'wait_for',
-
       } );
 
 
@@ -465,6 +819,43 @@ export class MyElasticSearchService {
       throw throwCatch( error )
     }
   }
+
+
+  enhanceDocumentForSuggestion( record: any ) {
+    const nameSuggestions = new Set<string>();
+
+    if ( record.name ) {
+      const parts = record.name.split( ' ' ).filter( p => p.trim().length > 0 );
+
+      parts.forEach( part => nameSuggestions.add( part.trim() ) );
+
+      for ( let i = 0; i < parts.length; i++ ) {
+        for ( let j = i + 1; j <= parts.length; j++ ) {
+          const phrase = parts.slice( i, j ).join( ' ' ).trim();
+          nameSuggestions.add( phrase );
+        }
+      }
+    }
+
+    return {
+      ...record,
+      isIndexed: undefined,
+      indexedAt: undefined,
+      ...( record.name && {
+        name_suggest: {
+          input: Array.from( nameSuggestions ),
+          weight: 10,
+        },
+      } ),
+      ...( record.email && {
+        email_suggest: {
+          input: [ record.email, record.email.split( '@' )[ 0 ] ],
+          weight: 5,
+        },
+      } ),
+    };
+  }
+
 
   async bulkIndex( operations: any[] ) {
     try {

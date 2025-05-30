@@ -22,7 +22,6 @@ export class HealthController {
     @HealthCheck()
     checkLiveness() {
         return this.health.check( [
-            // Kiểm tra basic, service có chạy không
             () => this.memory.checkHeap( 'memory_heap', 300 * 1024 * 1024 ),
             () => this.disk.checkStorage( 'disk', { path: '/', thresholdPercent: 0.9 } ),
         ] );
@@ -32,7 +31,6 @@ export class HealthController {
     @HealthCheck()
     checkReadiness() {
         return this.health.check( [
-            // Kiểm tra service có sẵn sàng phục vụ requests không
             () => this.kafkaHealth.checkKafka(),
             () => this.cacheHealth.checkCache(),
         ] );

@@ -28,7 +28,6 @@ export class AuthKafkaService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        // Auth Service
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_REGISTER );
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_LOGIN );
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_VALIDATE );

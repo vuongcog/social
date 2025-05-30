@@ -18,7 +18,22 @@ export const userMapping = {
             providerId: { type: 'keyword' },
             isActive: { type: 'boolean' },
             created_at: { type: 'date' },
-            updated_at: { type: 'date' }
+            updated_at: { type: 'date' },
+
+            name_suggest: {
+                type: 'completion',
+                analyzer: 'simple',
+                preserve_separators: true,
+                preserve_position_increments: true,
+                max_input_length: 50
+            },
+            email_suggest: {
+                type: 'completion',
+                analyzer: 'email_analyzer',
+                preserve_separators: true,
+                preserve_position_increments: true,
+                max_input_length: 100
+            }
         }
     },
     settings: {

@@ -83,11 +83,11 @@ export class ElasticSearchKafkaService implements OnModuleInit {
 
         }
     }
-    async indexRecordsAndMarkAsIndexed(): Promise<BaseResponse> {
+    async indexRecordsAndMarkAsIndexed( payload: number ): Promise<BaseResponse> {
         try {
             const result = await this.elasticServiceBreaker.fire( {
                 topic: KAFKA_TOPICS.ELASTICSEARCH_INDEX_RECORDS_AND_MARK_AS_INDEXED,
-                payload: {},
+                payload: payload,
             } )
             return handlerResponseBreaker( result );
 

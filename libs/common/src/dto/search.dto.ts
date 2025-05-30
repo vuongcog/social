@@ -26,3 +26,31 @@ export interface PaginatedSearchResponse {
         took: number;
     };
 }
+
+
+export class AutocompleteSuggestionDto {
+    q: string;
+    field?: 'name' | 'email' | 'all' = 'all';
+    size?: number = 10;
+    fuzzy?: boolean = false;
+}
+
+export class SpellingSuggestionDto {
+    q: string;
+    field?: 'name' | 'email' = 'name';
+}
+
+export class SearchWithSuggestionsDto {
+    q: string;
+    suggest?: string;
+    page?: number = 1;
+    limit?: number = 10;
+    sort?: string;
+}
+
+export class ContextualSuggestionDto {
+    q: string;
+    active?: boolean;
+    provider?: string;
+    size?: number = 10;
+}

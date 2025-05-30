@@ -46,7 +46,6 @@ export class KafkaService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        // Auth Service
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_REGISTER );
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_LOGIN );
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_VALIDATE );
@@ -55,11 +54,9 @@ export class KafkaService implements OnModuleInit {
         this.authClient.subscribeToResponseOf( KAFKA_TOPICS.AUTH_VALIDATE_USER );
 
 
-        // User Service
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_GET );
         this.userClient.subscribeToResponseOf( KAFKA_TOPICS.USER_UPDATED );
 
-        //ElasticSerach Service
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_DELETE_INDEX )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_INDEX_DOCUMENT )
         this.elasticsearchClient.subscribeToResponseOf( KAFKA_TOPICS.ELASTICSEARCH_DELETE_DOCUMENT )

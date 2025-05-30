@@ -66,7 +66,7 @@ export class ElasticsearchController {
   async indexRecordsAndMarkAsIndexed( @Payload() payload: number ) {
 
     try {
-      const result = this.esService.indexRecordsAndMarkAsIndexed( 2000 );
+      const result = this.esService.indexRecordsAndMarkAsIndexed( payload );
       return result;
     } catch ( error ) {
       return throwCatch( error )

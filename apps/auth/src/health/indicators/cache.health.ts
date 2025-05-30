@@ -9,7 +9,6 @@ export class CacheHealthIndicator {
 
     async checkCache(): Promise<HealthIndicatorResult> {
         try {
-            // Kiểm tra cache bằng cách thực hiện thao tác set/get
             const testKey = `health_check_${ Date.now() }`;
             await this.cacheManager.set( testKey, 'test', 10 );
             const value = await this.cacheManager.get( testKey );

@@ -1,4 +1,3 @@
-// api-gateway/src/auth/auth.guard.ts
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { KafkaService } from '../kafka/kafka.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';

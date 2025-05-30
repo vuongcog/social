@@ -34,10 +34,11 @@ export class ElasticsearchController {
         }
     }
     @Public()
-    @Get( "index-records" )
-    async indexRecordsAndMarkAsIndexed( @Res() res ) {
+    @Get( "index-records/:limit" )
+    async indexRecordsAndMarkAsIndexed( @Res() res, @Param( 'limit' ) limit: number,
+    ) {
         try {
-            const result = await this.elasticsearchKafkaClient.indexRecordsAndMarkAsIndexed();
+            const result = await this.elasticsearchKafkaClient.indexRecordsAndMarkAsIndexed( limit );
             return responseData( res, result );
         } catch ( error ) {
             throw throwCatchHtpp( error )
