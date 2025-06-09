@@ -24,6 +24,9 @@
     "start:api-gateway-debug-nowatch": "NODE_ENV=development nest start api-gateway --debug=9230 ",
     "start:elasticsearch": "NODE_ENV=development nest start elasticsearch --watch",
     "start:elasticsearch-debug": "NODE_ENV=development nest start elasticsearch --debug=9231 --watch",
+
+    "start:test-debug": "NODE_ENV=development nest start test --debug=9999 --watch",
+
     "prisma:migrate": "prisma migrate dev --schema=./libs/database/src/prisma/schema.prisma",
     "prisma:reset": "prisma migrate reset --schema=./libs/database/src/prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=./libs/database/src/prisma/schema.prisma",

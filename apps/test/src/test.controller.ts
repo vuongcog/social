@@ -1,25 +1,30 @@
-import { Controller, Get, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post, Request } from '@nestjs/common';
 import { TestService } from './test.service';
+import { TestDto } from './test.dto';
+
 @Controller()
 export class TestController {
   constructor( private readonly testService: TestService ) { }
 
-  testService1() {
-    throw {
-      status: "success",
-      statusCode: HttpStatus.AMBIGUOUS,
-    }
-  }
-
   @Get( "test" )
   async test() {
     try {
-      this.testService1()
-
+      return "hello"
     } catch ( error ) {
       throw new HttpException( error, error.statusCode )
     }
   }
 
+  @Post( "test" )
+  async test1( @Body() body: TestDto ) {
+    try {
+      return this.testService.getResponse( {
+        name: "hello",
+        email: "hello",
+      } )
 
+    } catch ( error ) {
+      throw new HttpException( error, error.statusCode )
+    }
+  }
 }
